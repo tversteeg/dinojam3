@@ -14,8 +14,8 @@ pub struct Camera {
 
 impl Camera {
     /// Pan the camera.
-    pub fn pan(&mut self, x: f64, y: f64, min_x: f64, max_x: f64) {
-        self.x = (self.x + x).clamp(min_x, max_x);
+    pub fn pan(&mut self, x: f64, y: f64, min_x: f64) {
+        self.x = (self.x + x).max(min_x);
         self.y += y;
     }
 

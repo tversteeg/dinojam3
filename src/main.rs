@@ -30,7 +30,7 @@ use tokio::runtime::Runtime;
 use vek::Extent2;
 
 /// Window size.
-pub const SIZE: Extent2<usize> = Extent2::new(640, 360);
+pub const SIZE: Extent2<usize> = Extent2::new(320, 240);
 /// Updates per second of the update loop.
 const UPDATES_PER_SECOND: u32 = 60;
 
@@ -69,8 +69,8 @@ pub fn rotatable_sprite(path: &str) -> AssetGuard<RotatableSprite> {
 }
 
 /// Load a font.
-pub fn font(path: &str) -> AssetGuard<Font> {
-    crate::asset(path)
+pub fn font() -> AssetGuard<'static, Font> {
+    crate::asset("torus-sans")
 }
 
 async fn run() -> Result<()> {
