@@ -7,9 +7,9 @@ use vek::Vec2;
 #[derive(Default)]
 pub struct Camera {
     /// X position.
-    x: f64,
+    pub x: f64,
     /// Y position.
-    y: f64,
+    pub y: f64,
 }
 
 impl Camera {

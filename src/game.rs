@@ -70,11 +70,59 @@ impl GameState {
 
         let player_pos = settings.player_offset + (0.0, SIZE.h as f64 / 2.0);
 
+        let tree = crate::sprite("palm");
+        for i in 0..(settings.tree_amount * 2) {
+            tree.render(
+                canvas,
+                &Camera::default(),
+                Vec2::new(
+                    (-(self.camera.x * 0.8) % SIZE.w as f64)
+                        + i as f64 * (SIZE.w / settings.tree_amount) as f64,
+                    -(self.camera.y * 0.95) + tree.height() as f64 - tree.height() as f64 / 4.0
+                        + 10.0,
+                ),
+            );
+        }
+        for i in 0..((settings.tree_amount - 1) * 2) {
+            tree.render(
+                canvas,
+                &Camera::default(),
+                Vec2::new(
+                    (-(self.camera.x * 0.9) % SIZE.w as f64)
+                        + i as f64 * (SIZE.w / (settings.tree_amount - 1)) as f64,
+                    -self.camera.y + tree.height() as f64 - tree.height() as f64 / 4.0 - 3.0,
+                ),
+            );
+        }
+
         let ground_height = SIZE.h - ((self.pos.y + player_pos.y).max(0.0) as usize).min(SIZE.h);
         canvas[(ground_height * SIZE.w)..].fill(Color::LightGreen.as_u32());
         let edge_ground_height =
             SIZE.h - ((self.pos.y + player_pos.y + 3.0).max(0.0) as usize).min(SIZE.h);
         canvas[(edge_ground_height * SIZE.w)..(ground_height * SIZE.w)].fill(Color::Green.as_u32());
+
+        let rock = crate::sprite("rock");
+        rock.render(
+            canvas,
+            &Camera::default(),
+            Vec2::new(
+                (-self.camera.x % (SIZE.w as f64 * 2.3)) + SIZE.w as f64,
+                -self.camera.y + player_pos.y - rock.height() as f64 / 2.0,
+            ),
+        );
+
+        let cloud = crate::sprite("cloud");
+        for i in 0..10 {
+            cloud.render(
+                canvas,
+                &Camera::default(),
+                Vec2::new(
+                    (-(self.camera.x * 0.5) % (SIZE.w as f64 * 2.3 + i as f64 * 130.0))
+                        + SIZE.w as f64,
+                    -(self.camera.y * 0.5) - i as f64 * 200.0 - 100.0,
+                ),
+            );
+        }
 
         match self.phase {
             Phase::LaunchSetAngle => {
@@ -214,6 +262,8 @@ pub struct Settings {
     pub air_friction: f64,
     pub restitution: Vec2<f64>,
     pub halting_velocity: Vec2<f64>,
+    pub tree_amount: usize,
+    pub rock_amount: usize,
     /// Distance from the edge at which the camera will pan.
     pub pan_edge_offset: i32,
     /// How many pixels per second the camera will pan.

@@ -12,6 +12,8 @@ rot_y_clamp = 500.0
 air_friction = 0.9999
 restitution = { x = 0.8, y = 0.6 }
 halting_velocity = { x = 200.0, y = 100.0 }
+tree_amount = 4
+rock_amount = 1
 
 # Distance from the edge at which the camera will pan
 pan_edge_offset = 80

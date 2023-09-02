@@ -202,6 +202,8 @@ pub enum SpriteOffset {
     Middle,
     /// Horizontal middle and vertical top will be rendered at `(0, 0)`.
     MiddleTop,
+    /// Horizontal middle and vertical top will be rendered at `(0, 0)`.
+    MiddleBottom,
     /// Left top of the sprite will be rendered at `(0, 0)`.
     LeftTop,
     /// Sprite will be offset with the custom coordinates counting from the left top.
@@ -216,6 +218,9 @@ impl SpriteOffset {
                 Vec2::new(-(sprite_size.w as i32) / 2, -(sprite_size.h as i32) / 2)
             }
             SpriteOffset::MiddleTop => Vec2::new(-(sprite_size.w as i32) / 2, 0),
+            SpriteOffset::MiddleBottom => {
+                Vec2::new(-(sprite_size.w as i32) / 2, sprite_size.h as i32)
+            }
             SpriteOffset::LeftTop => Vec2::zero(),
             SpriteOffset::Custom(offset) => *offset,
         }
