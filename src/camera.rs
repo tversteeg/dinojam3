@@ -15,8 +15,8 @@ pub struct Camera {
 impl Camera {
     /// Pan the camera.
     pub fn pan(&mut self, x: f64, y: f64, min_x: f64) {
-        self.x = (self.x + x).max(min_x);
-        self.y += y;
+        self.x = x.max(min_x);
+        self.y = y;
     }
 
     /// Create drawing options with the camera subrectangle to draw.

@@ -1,11 +1,17 @@
 min_angle = -1.5
 max_angle = 0.2
 angle_delta = 1.5
-min_speed = 10.0
-max_speed = 30.0
-speed_delta = 10.0
-gravity = 9.8
-cannon_offset = { x = 50, y = 70 }
+min_speed = 500.0
+max_speed = 6000.0
+speed_delta = 100.0
+gravity = 98.1
+cannon_offset = { x = 0, y = 0 }
+player_offset = { x = 50, y = 0 }
+rot_factor = { x = 0.002, y = 0.02 }
+rot_y_clamp = 500.0
+air_friction = 0.9999
+restitution = { x = 0.8, y = 0.6 }
+halting_velocity = { x = 200.0, y = 100.0 }
 
 # Distance from the edge at which the camera will pan
 pan_edge_offset = 80

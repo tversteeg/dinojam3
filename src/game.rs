@@ -4,6 +4,7 @@ use vek::Vec2;
 
 use crate::{
     camera::Camera,
+    graphics::Color,
     input::Input,
     math::Iso,
     physics::{Physics, Settings as PhysicsSettings},
@@ -23,8 +24,6 @@ enum Phase {
 
 /// Handles everything related to the game.
 pub struct GameState {
-    /// First level ground.
-    terrain: Terrain,
     /// Enemies on the map.
     enemies: Vec<Unit>,
     /// Camera position based on the cursor.
@@ -39,6 +38,7 @@ pub struct GameState {
     initial_speed: f64,
     pos: Vec2<f64>,
     vel: Vec2<f64>,
+    rot: f64,
 }
 
 impl GameState {
@@ -49,18 +49,17 @@ impl GameState {
         unit_spawner.trigger();
         let camera = Camera::default();
         let mut physics = Physics::new();
-        let terrain = Terrain::new(&mut physics);
 
         Self {
-            terrain,
             enemies,
             camera,
             physics,
             phase: Phase::LaunchSetAngle,
-            initial_angle: 0.0,
-            initial_speed: 0.0,
+            initial_angle: crate::settings().min_angle,
+            initial_speed: crate::settings().min_speed,
             pos: Vec2::zero(),
             vel: Vec2::zero(),
+            rot: 0.0,
             sign: 1.0,
         }
     }
@@ -69,7 +68,13 @@ impl GameState {
     pub fn render(&mut self, canvas: &mut [u32], _frame_time: f64) {
         let settings = crate::settings();
 
-        self.terrain.render(canvas, &self.camera);
+        let player_pos = settings.player_offset + (0.0, SIZE.h as f64 / 2.0);
+
+        let ground_height = SIZE.h - ((self.pos.y + player_pos.y).max(0.0) as usize).min(SIZE.h);
+        canvas[(ground_height * SIZE.w)..].fill(Color::LightGreen.as_u32());
+        let edge_ground_height =
+            SIZE.h - ((self.pos.y + player_pos.y + 3.0).max(0.0) as usize).min(SIZE.h);
+        canvas[(edge_ground_height * SIZE.w)..(ground_height * SIZE.w)].fill(Color::Green.as_u32());
 
         match self.phase {
             Phase::LaunchSetAngle => {
@@ -89,16 +94,19 @@ impl GameState {
                     canvas,
                 );
             }
-            Phase::Fly => {}
+            Phase::Fly => {
+                crate::rotatable_sprite("dino1").render(
+                    Iso::new(player_pos, self.rot),
+                    canvas,
+                    &Default::default(),
+                );
+            }
         }
 
-        if self.phase != Phase::Fly {
+        if self.pos.x < SIZE.w as f64 {
             crate::rotatable_sprite("cannon").render(
                 Iso::new(
-                    (
-                        settings.cannon_offset.x,
-                        SIZE.h as f64 - settings.cannon_offset.y,
-                    ),
+                    player_pos + settings.cannon_offset,
                     self.initial_angle + std::f64::consts::FRAC_PI_2,
                 ),
                 canvas,
@@ -116,6 +124,8 @@ impl GameState {
     pub fn update(&mut self, input: &Input, dt: f64) {
         let settings = crate::settings();
 
+        self.camera.pan(self.pos.x, self.pos.y, 0.0);
+
         match self.phase {
             Phase::LaunchSetAngle => {
                 if input.left_mouse.is_released() {
@@ -129,6 +139,10 @@ impl GameState {
                 } else if self.initial_angle < settings.min_angle {
                     self.sign = 1.0;
                 }
+
+                self.pos = Vec2::zero();
+                self.vel = Vec2::zero();
+                self.rot = 0.0;
             }
             Phase::LaunchSetSpeed => {
                 if input.left_mouse.is_released() {
@@ -147,26 +161,39 @@ impl GameState {
                 }
             }
             Phase::Fly => {
-                if input.left_mouse.is_released() {
-                    self.phase = Phase::LaunchSetAngle;
-                }
-
                 self.pos += self.vel * dt;
                 self.vel.y += settings.gravity * dt;
+                self.vel *= settings.air_friction;
+                self.rot += (self.vel.x * settings.rot_factor.x
+                    + self
+                        .vel
+                        .y
+                        .clamp(-settings.rot_y_clamp, settings.rot_y_clamp)
+                        * settings.rot_factor.y)
+                    * dt;
 
-                self.camera.pan(self.pos.x, self.pos.y, 0.0);
+                if self.pos.y > 0.0 {
+                    if self.vel.x.abs() < settings.halting_velocity.x
+                        && self.vel.y.abs() < settings.halting_velocity.y
+                    {
+                        self.phase = Phase::LaunchSetAngle;
+
+                        self.initial_angle = settings.min_angle;
+                        self.initial_speed = settings.min_speed;
+                    }
+                    self.pos.y = 0.0;
+                    self.vel.x *= settings.restitution.x;
+                    self.vel.y = -self.vel.y.abs() * settings.restitution.y;
+                }
+
+                if input.left_mouse.is_released() {
+                    self.phase = Phase::LaunchSetAngle;
+
+                    self.initial_angle = settings.min_angle;
+                    self.initial_speed = settings.min_speed;
+                }
             }
         }
-
-        // Simulate the physics
-        self.physics.step(dt);
-
-        // Update all units
-        self.enemies.iter_mut().for_each(|unit| {
-            if let Some(projectile) = unit.update(&self.terrain, dt, &mut self.physics) {
-                todo!()
-            }
-        });
     }
 }
 
@@ -181,6 +208,12 @@ pub struct Settings {
     pub speed_delta: f64,
     pub gravity: f64,
     pub cannon_offset: Vec2<f64>,
+    pub player_offset: Vec2<f64>,
+    pub rot_factor: Vec2<f64>,
+    pub rot_y_clamp: f64,
+    pub air_friction: f64,
+    pub restitution: Vec2<f64>,
+    pub halting_velocity: Vec2<f64>,
     /// Distance from the edge at which the camera will pan.
     pub pan_edge_offset: i32,
     /// How many pixels per second the camera will pan.
