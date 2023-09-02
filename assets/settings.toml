@@ -1,19 +1,37 @@
 min_angle = -1.5
 max_angle = 0.2
 angle_delta = 1.5
-min_speed = 500.0
-max_speed = 6000.0
-speed_delta = 100.0
+min_speed = 100.0
+max_speed = 600.0
+speed_delta = 500.0
 gravity = 98.1
+
 cannon_offset = { x = 0, y = 0 }
 player_offset = { x = 50, y = 0 }
+boost_meter_offset = { x = -25, y = -30 }
+boost_meter_height = 6
+speed_meter_offset = { x = -40, y = -60 }
+speed_meter_size = { w = 200, h = 15 }
+
 rot_factor = { x = 0.002, y = 0.02 }
 rot_y_clamp = 500.0
-air_friction = 0.9999
+air_friction = 0.999
 restitution = { x = 0.8, y = 0.6 }
 halting_velocity = { x = 200.0, y = 100.0 }
 tree_amount = 4
 rock_amount = 1
+
+boost_meter_speed = 100
+boost_meter_penalty_area = 40
+boost_meter_safe_area = 10
+boost_meter_crit_area = 5
+boost_penalty = { x = 0.5, y = 0.5 }
+boost_crit = { x = 1.5, y = 1.1 }
+boost_safe = { x = 1.1, y = 1.05 }
+boost_delay = 2.0
+max_boost_velocity = { x = 500, y = 500 }
+static_velocity_boost = { x = 100, y = 50 }
+static_velocity_boost_treshold = 400
 
 # Distance from the edge at which the camera will pan
 pan_edge_offset = 80

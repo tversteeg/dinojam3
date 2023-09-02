@@ -1,6 +1,6 @@
 use assets_manager::{loader::TomlLoader, Asset};
 use serde::Deserialize;
-use vek::Vec2;
+use vek::{Extent2, Vec2};
 
 use crate::{
     camera::Camera,
@@ -39,6 +39,9 @@ pub struct GameState {
     pos: Vec2<f64>,
     vel: Vec2<f64>,
     rot: f64,
+    boost: f64,
+    boost_sign: f64,
+    boost_delay: f64,
 }
 
 impl GameState {
@@ -61,6 +64,9 @@ impl GameState {
             vel: Vec2::zero(),
             rot: 0.0,
             sign: 1.0,
+            boost: 0.0,
+            boost_sign: 1.0,
+            boost_delay: 0.0,
         }
     }
 
@@ -112,7 +118,7 @@ impl GameState {
         );
 
         let cloud = crate::sprite("cloud");
-        for i in 0..10 {
+        for i in 0..20 {
             cloud.render(
                 canvas,
                 &Camera::default(),
@@ -127,26 +133,63 @@ impl GameState {
         match self.phase {
             Phase::LaunchSetAngle => {
                 crate::font().render("Click to set the angle!", Vec2::new(10, 10).as_(), canvas);
-                crate::font().render(
-                    &format!("Angle: {}", self.initial_angle),
-                    Vec2::new(10, 50).as_(),
-                    canvas,
-                );
             }
             Phase::LaunchSetSpeed => {
                 crate::font().render("Click to set the speed!", Vec2::new(10, 10).as_(), canvas);
+                let speed_offset: Vec2<usize> = (settings.speed_meter_offset + player_pos).as_();
+                for y in speed_offset.y..(speed_offset.y + settings.speed_meter_size.h) {
+                    let start = y * SIZE.w + speed_offset.x;
+                    let x = start + settings.speed_meter_size.w / 2;
+                    canvas[start..x].fill(Color::Salmon.as_u32());
 
-                crate::font().render(
-                    &format!("Speed: {}", self.initial_speed),
-                    Vec2::new(10, 50).as_(),
-                    canvas,
-                );
+                    let x2 = x + settings.speed_meter_size.w / 2;
+
+                    canvas[x..x2].fill(Color::LightGreen.as_u32());
+
+                    let x4 = start
+                        + ((self.initial_speed - settings.min_speed)
+                            / (settings.max_speed - settings.min_speed)
+                            * settings.speed_meter_size.w as f64)
+                            as usize;
+                    canvas[x4..(x4 + 3)].fill(Color::White.as_u32());
+                }
             }
             Phase::Fly => {
                 crate::rotatable_sprite("dino1").render(
                     Iso::new(player_pos, self.rot),
                     canvas,
                     &Default::default(),
+                );
+
+                if self.boost_delay <= 0.0 {
+                    let boost_offset: Vec2<usize> =
+                        (settings.boost_meter_offset + player_pos).as_();
+                    for y in boost_offset.y..(boost_offset.y + settings.boost_meter_height) {
+                        let start = y * SIZE.w + boost_offset.x;
+                        let x = start + settings.boost_meter_penalty_area as usize;
+                        canvas[start..x].fill(Color::Salmon.as_u32());
+
+                        let x2 = x + settings.boost_meter_safe_area as usize;
+
+                        canvas[x..x2].fill(Color::LightGreen.as_u32());
+
+                        let x3 = x2 + settings.boost_meter_crit_area as usize;
+
+                        canvas[x2..x3].fill(Color::Green.as_u32());
+
+                        let x4 = start + self.boost as usize;
+                        canvas[x4..(x4 + 3)].fill(Color::White.as_u32());
+                    }
+                }
+
+                crate::font().render(
+                    &format!(
+                        "Distance: {:<8} Height: {}",
+                        self.pos.x.round(),
+                        self.pos.y.abs().round()
+                    ),
+                    Vec2::new(5, 5).as_(),
+                    canvas,
                 );
             }
         }
@@ -199,6 +242,7 @@ impl GameState {
 
                     self.vel = Vec2::new(self.initial_angle.cos(), self.initial_angle.sin())
                         * self.initial_speed;
+                    self.boost_delay = settings.boost_delay;
                 }
 
                 self.initial_speed += settings.speed_delta * self.sign * dt;
@@ -220,6 +264,52 @@ impl GameState {
                         * settings.rot_factor.y)
                     * dt;
 
+                self.boost += self.boost_sign * settings.boost_meter_speed * dt;
+                if self.boost_delay > 0.0 {
+                    self.boost_delay -= dt;
+                }
+                if self.boost
+                    >= settings.boost_meter_penalty_area
+                        + settings.boost_meter_safe_area
+                        + settings.boost_meter_crit_area
+                {
+                    self.boost_sign = -1.0;
+                    self.boost = settings.boost_meter_penalty_area
+                        + settings.boost_meter_safe_area
+                        + settings.boost_meter_crit_area;
+                } else if self.boost <= 0.0 {
+                    self.boost_sign = 1.0;
+                    self.boost = 0.0;
+                }
+
+                if self.boost_delay <= 0.0 && input.left_mouse.is_released() {
+                    let boost = if self.boost
+                        > settings.boost_meter_safe_area + settings.boost_meter_penalty_area
+                    {
+                        settings.boost_crit
+                    } else if self.boost > settings.boost_meter_penalty_area {
+                        settings.boost_safe
+                    } else {
+                        settings.boost_penalty
+                    };
+
+                    self.vel.x = (self.vel.x * boost.x).min(settings.max_boost_velocity.x);
+                    self.vel.y = (self.vel.y * boost.y).min(settings.max_boost_velocity.y);
+
+                    if boost.x > 1.0
+                        && self.vel.magnitude() > settings.static_velocity_boost_treshold
+                    {
+                        self.vel.x += settings.static_velocity_boost.x;
+                        self.vel.y += settings.static_velocity_boost.y * self.vel.y.signum();
+                    }
+
+                    self.boost = fastrand::f64()
+                        * (settings.boost_meter_penalty_area
+                            + settings.boost_meter_safe_area
+                            + settings.boost_meter_crit_area);
+                    self.boost_delay = settings.boost_delay;
+                }
+
                 if self.pos.y > 0.0 {
                     if self.vel.x.abs() < settings.halting_velocity.x
                         && self.vel.y.abs() < settings.halting_velocity.y
@@ -232,13 +322,6 @@ impl GameState {
                     self.pos.y = 0.0;
                     self.vel.x *= settings.restitution.x;
                     self.vel.y = -self.vel.y.abs() * settings.restitution.y;
-                }
-
-                if input.left_mouse.is_released() {
-                    self.phase = Phase::LaunchSetAngle;
-
-                    self.initial_angle = settings.min_angle;
-                    self.initial_speed = settings.min_speed;
                 }
             }
         }
@@ -257,6 +340,10 @@ pub struct Settings {
     pub gravity: f64,
     pub cannon_offset: Vec2<f64>,
     pub player_offset: Vec2<f64>,
+    pub boost_meter_offset: Vec2<f64>,
+    pub boost_meter_height: usize,
+    pub speed_meter_offset: Vec2<f64>,
+    pub speed_meter_size: Extent2<usize>,
     pub rot_factor: Vec2<f64>,
     pub rot_y_clamp: f64,
     pub air_friction: f64,
@@ -264,6 +351,17 @@ pub struct Settings {
     pub halting_velocity: Vec2<f64>,
     pub tree_amount: usize,
     pub rock_amount: usize,
+    pub boost_meter_speed: f64,
+    pub boost_meter_penalty_area: f64,
+    pub boost_meter_safe_area: f64,
+    pub boost_meter_crit_area: f64,
+    pub boost_penalty: Vec2<f64>,
+    pub boost_crit: Vec2<f64>,
+    pub boost_safe: Vec2<f64>,
+    pub boost_delay: f64,
+    pub max_boost_velocity: Vec2<f64>,
+    pub static_velocity_boost: Vec2<f64>,
+    pub static_velocity_boost_treshold: f64,
     /// Distance from the edge at which the camera will pan.
     pub pan_edge_offset: i32,
     /// How many pixels per second the camera will pan.
