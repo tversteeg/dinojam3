@@ -74,7 +74,12 @@ impl GameState {
     pub fn render(&mut self, canvas: &mut [u32], _frame_time: f64) {
         let settings = crate::settings();
 
-        let player_pos = settings.player_offset + (0.0, SIZE.h as f64 / 2.0);
+        let mut player_pos = settings.player_offset + (0.0, SIZE.h as f64 / 2.0);
+        if self.phase != Phase::Fly {
+            player_pos += settings.initial_camera;
+            self.camera
+                .pan(settings.initial_camera.x, settings.initial_camera.y, 0.0);
+        }
 
         let tree = crate::sprite("palm");
         for i in 0..(settings.tree_amount * 2) {
@@ -95,7 +100,8 @@ impl GameState {
                 &Camera::default(),
                 Vec2::new(
                     (-(self.camera.x * 0.9) % SIZE.w as f64)
-                        + i as f64 * (SIZE.w / (settings.tree_amount - 1)) as f64,
+                        + i as f64 * (SIZE.w / (settings.tree_amount - 1)) as f64
+                        + 5.0,
                     -self.camera.y + tree.height() as f64 - tree.height() as f64 / 4.0 - 3.0,
                 ),
             );
@@ -184,11 +190,11 @@ impl GameState {
 
                 crate::font().render(
                     &format!(
-                        "Distance: {:<8} Height: {}",
+                        "Distance: {:<7} Height: {}",
                         self.pos.x.round(),
                         self.pos.y.abs().round()
                     ),
-                    Vec2::new(5, 5).as_(),
+                    Vec2::new(0, 0).as_(),
                     canvas,
                 );
             }
@@ -338,6 +344,7 @@ pub struct Settings {
     pub max_speed: f64,
     pub speed_delta: f64,
     pub gravity: f64,
+    pub initial_camera: Vec2<f64>,
     pub cannon_offset: Vec2<f64>,
     pub player_offset: Vec2<f64>,
     pub boost_meter_offset: Vec2<f64>,
