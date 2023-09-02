@@ -3,7 +3,9 @@ use miette::{IntoDiagnostic, Result};
 use pixels::{PixelsBuilder, SurfaceTexture};
 use vek::{Extent2, Vec2};
 use winit::{
-    event::{ElementState, Event, KeyboardInput, MouseButton, VirtualKeyCode, WindowEvent},
+    event::{
+        ElementState, Event, KeyboardInput, MouseButton, TouchPhase, VirtualKeyCode, WindowEvent,
+    },
     event_loop::EventLoop,
 };
 
@@ -186,6 +188,17 @@ where
                             .handle_bool(*state == ElementState::Pressed);
                     }
                 }
+
+                Event::WindowEvent {
+                    event: WindowEvent::Touch(touch),
+                    ..
+                } => match touch.phase {
+                    TouchPhase::Started => g.game.2.left_mouse.handle_bool(true),
+                    TouchPhase::Moved => (),
+                    TouchPhase::Ended | TouchPhase::Cancelled => {
+                        g.game.2.left_mouse.handle_bool(false)
+                    }
+                },
 
                 // Handle mouse move
                 Event::WindowEvent {
