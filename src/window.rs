@@ -26,7 +26,7 @@ where
 {
     // Build the window builder with the event loop the user supplied
     let event_loop = EventLoop::new();
-    let logical_size = LogicalSize::new(size.w as f64 * 2.0, size.h as f64 * 2.0);
+    let logical_size = LogicalSize::new(size.w as f64, size.h as f64);
     #[allow(unused_mut)]
     let mut window_builder = WindowBuilder::new()
         .with_title("DINOJAM3")
@@ -225,6 +225,8 @@ mod wasm {
     use wasm_bindgen::JsCast;
     use web_sys::HtmlCanvasElement;
 
+    use crate::SIZE;
+
     /// Attach the winit window to a canvas.
     pub fn setup_canvas() -> HtmlCanvasElement {
         log::debug!("Binding window to HTML canvas");
@@ -242,8 +244,12 @@ mod wasm {
             .unwrap();
 
         canvas.set_id("canvas");
+        canvas.set_width(SIZE.w as u32 * 2);
+        canvas.set_height(SIZE.h as u32 * 2);
         body.append_child(&canvas).unwrap();
-        canvas.style().set_css_text("display:block; margin: auto");
+        canvas
+            .style()
+            .set_css_text("display:block; margin: auto; image-rendering: pixelated");
 
         let header = document.create_element("h2").unwrap();
         header.set_text_content(Some("DINOJAM3"));

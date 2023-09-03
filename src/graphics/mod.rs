@@ -1,7 +1,3 @@
-use raqote::SolidSource;
-
-pub mod healthbar;
-
 /// Different colors.
 ///
 /// Based on DB32 scale.
@@ -79,12 +75,5 @@ impl Color {
             Self::ForestGreen => 0xff_8f_97_4a,
             Self::DarkForestGreen => 0xff_8a_6f_30,
         }
-    }
-
-    /// To raqote solid source.
-    pub fn to_source(self) -> SolidSource {
-        let [b, g, r, a] = self.as_u32().to_ne_bytes();
-
-        SolidSource::from_unpremultiplied_argb(a, r, g, b)
     }
 }

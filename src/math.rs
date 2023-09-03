@@ -1,6 +1,5 @@
 use std::ops::{Add, AddAssign, Neg, Sub, SubAssign};
 
-use parry2d_f64::na::{Isometry2, Vector2};
 use vek::Vec2;
 
 /// Position with a rotation.
@@ -46,15 +45,6 @@ impl Iso {
 impl From<(Vec2<f64>, Rotation)> for Iso {
     fn from((pos, rot): (Vec2<f64>, Rotation)) -> Self {
         Self { pos, rot }
-    }
-}
-
-impl From<Iso> for Isometry2<f64> {
-    fn from(value: Iso) -> Self {
-        Isometry2::new(
-            Vector2::new(value.pos.x, value.pos.y),
-            value.rot.to_radians(),
-        )
     }
 }
 

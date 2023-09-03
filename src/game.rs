@@ -2,18 +2,7 @@ use assets_manager::{loader::TomlLoader, Asset};
 use serde::Deserialize;
 use vek::{Extent2, Vec2};
 
-use crate::{
-    camera::Camera,
-    graphics::Color,
-    input::Input,
-    math::Iso,
-    physics::{Physics, Settings as PhysicsSettings},
-    terrain::Settings as TerrainSettings,
-    terrain::Terrain,
-    timer::Timer,
-    unit::{Unit, UnitType},
-    SIZE,
-};
+use crate::{camera::Camera, graphics::Color, input::Input, math::Iso, timer::Timer, SIZE};
 
 #[derive(Copy, Clone, PartialEq, Eq)]
 enum Phase {
@@ -24,14 +13,7 @@ enum Phase {
 
 /// Handles everything related to the game.
 pub struct GameState {
-    /// Enemies on the map.
-    enemies: Vec<Unit>,
-    /// Camera position based on the cursor.
     camera: Camera,
-    /// Physics engine.
-    ///
-    /// Size of the grid is the maximum size of any map.
-    physics: Physics,
     phase: Phase,
     initial_angle: f64,
     sign: f64,
@@ -47,16 +29,11 @@ pub struct GameState {
 impl GameState {
     /// Construct the game state with default values.
     pub fn new() -> Self {
-        let enemies = Vec::new();
         let mut unit_spawner = Timer::new(crate::settings().unit_spawn_interval);
         unit_spawner.trigger();
         let camera = Camera::default();
-        let mut physics = Physics::new();
 
         Self {
-            enemies,
-            camera,
-            physics,
             phase: Phase::LaunchSetAngle,
             initial_angle: crate::settings().min_angle,
             initial_speed: crate::settings().min_speed,
@@ -67,6 +44,7 @@ impl GameState {
             boost: 0.0,
             boost_sign: 1.0,
             boost_delay: 0.0,
+            camera,
         }
     }
 
@@ -210,11 +188,6 @@ impl GameState {
                 &self.camera,
             );
         }
-
-        // Render all units
-        self.enemies
-            .iter()
-            .for_each(|unit| unit.render(canvas, &self.camera));
     }
 
     /// Update a frame and handle user input.
@@ -377,10 +350,6 @@ pub struct Settings {
     pub unit_spawn_interval: f64,
     /// Interval in seconds for when an enemy unit spawns.
     pub enemy_unit_spawn_interval: f64,
-    /// Physics settings.
-    pub physics: PhysicsSettings,
-    /// Terrain settings.
-    pub terrain: TerrainSettings,
 }
 
 impl Asset for Settings {
