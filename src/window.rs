@@ -24,12 +24,15 @@ where
     U: FnMut(&mut G, &Input, f32) + 'static,
     R: FnMut(&mut G, &mut [u32], f32) + 'static,
 {
+    #[cfg(target_arch = "wasm32")]
+    let canvas = wasm::setup_canvas();
+
     // Build the window builder with the event loop the user supplied
     let event_loop = EventLoop::new();
     let logical_size = LogicalSize::new(size.w as f64, size.h as f64);
     #[allow(unused_mut)]
     let mut window_builder = WindowBuilder::new()
-        .with_title("DINOJAM3")
+        .with_title("DINOJAM3 - Darwin's Ascent")
         .with_inner_size(logical_size)
         .with_min_inner_size(logical_size);
 
@@ -38,13 +41,13 @@ where
     {
         use winit::platform::web::WindowBuilderExtWebSys;
 
-        window_builder = window_builder.with_canvas(Some(wasm::setup_canvas()));
+        window_builder = window_builder.with_canvas(Some(canvas));
     }
 
     let window = window_builder.build(&event_loop).into_diagnostic()?;
 
     let pixels = {
-        let surface_texture = SurfaceTexture::new(size.w as u32, size.h as u32, &window);
+        let surface_texture = SurfaceTexture::new(size.w as u32 * 2, size.h as u32 * 2, &window);
         PixelsBuilder::new(size.w as u32, size.h as u32, surface_texture)
             .clear_color(pixels::wgpu::Color {
                 r: 0.796,
@@ -56,6 +59,9 @@ where
             .await
     }
     .into_diagnostic()?;
+
+    #[cfg(target_arch = "wasm32")]
+    wasm::update_canvas(size);
 
     // Open the window and run the event loop
     let mut buffer = vec![0u32; size.w * size.h];
@@ -222,10 +228,9 @@ where
 
 #[cfg(target_arch = "wasm32")]
 mod wasm {
+    use vek::Extent2;
     use wasm_bindgen::JsCast;
     use web_sys::HtmlCanvasElement;
-
-    use crate::SIZE;
 
     /// Attach the winit window to a canvas.
     pub fn setup_canvas() -> HtmlCanvasElement {
@@ -244,17 +249,33 @@ mod wasm {
             .unwrap();
 
         canvas.set_id("canvas");
-        canvas.set_width(SIZE.w as u32 * 2);
-        canvas.set_height(SIZE.h as u32 * 2);
         body.append_child(&canvas).unwrap();
-        canvas
-            .style()
-            .set_css_text("display:block; margin: auto; image-rendering: pixelated");
 
         let header = document.create_element("h2").unwrap();
-        header.set_text_content(Some("DINOJAM3"));
+        header.set_text_content(Some("DINOJAM3 - Darwin's Ascent"));
         body.append_child(&header).unwrap();
 
         canvas
+    }
+
+    /// Update the size of the canvas.
+    pub fn update_canvas(size: Extent2<usize>) {
+        let window = web_sys::window().unwrap();
+
+        let document = window.document().unwrap();
+
+        let canvas = document
+            .get_element_by_id("canvas")
+            .unwrap()
+            .dyn_into::<HtmlCanvasElement>()
+            .unwrap();
+
+        canvas.style().set_css_text(&format!(
+            "display:block; margin: auto; image-rendering: pixelated; width: {}px; height: {}px",
+            size.w * 2,
+            size.h * 2
+        ));
+        canvas.set_width(size.w as u32 * 2);
+        canvas.set_height(size.h as u32 * 2);
     }
 }
