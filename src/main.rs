@@ -5,6 +5,7 @@ mod game;
 mod graphics;
 mod input;
 mod math;
+mod pickup;
 mod random;
 mod sprite;
 mod timer;

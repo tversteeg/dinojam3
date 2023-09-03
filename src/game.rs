@@ -2,7 +2,9 @@ use assets_manager::{loader::TomlLoader, Asset};
 use serde::Deserialize;
 use vek::{Extent2, Vec2};
 
-use crate::{camera::Camera, graphics::Color, input::Input, math::Iso, timer::Timer, SIZE};
+use crate::{
+    camera::Camera, graphics::Color, input::Input, math::Iso, pickup::Pickup, timer::Timer, SIZE,
+};
 
 #[derive(Copy, Clone, PartialEq, Eq)]
 enum Phase {
@@ -24,19 +26,21 @@ pub struct GameState {
     boost: f64,
     boost_sign: f64,
     boost_delay: f64,
+    pickups: Vec<Pickup>,
 }
 
 impl GameState {
     /// Construct the game state with default values.
     pub fn new() -> Self {
-        let mut unit_spawner = Timer::new(crate::settings().unit_spawn_interval);
-        unit_spawner.trigger();
+        let settings = crate::settings();
         let camera = Camera::default();
+
+        let pickups = vec![Pickup::new("disk", settings.disk_spawn_rate, 3)];
 
         Self {
             phase: Phase::LaunchSetAngle,
-            initial_angle: crate::settings().min_angle,
-            initial_speed: crate::settings().min_speed,
+            initial_angle: settings.min_angle,
+            initial_speed: settings.min_speed,
             pos: Vec2::zero(),
             vel: Vec2::zero(),
             rot: 0.0,
@@ -44,6 +48,7 @@ impl GameState {
             boost: 0.0,
             boost_sign: 1.0,
             boost_delay: 0.0,
+            pickups,
             camera,
         }
     }
@@ -179,6 +184,10 @@ impl GameState {
                 &self.camera,
             );
         }
+
+        self.pickups
+            .iter()
+            .for_each(|pickup| pickup.render(canvas, &self.camera));
     }
 
     /// Update a frame and handle user input.
@@ -295,6 +304,10 @@ impl GameState {
                 }
             }
         }
+
+        self.pickups
+            .iter_mut()
+            .for_each(|pickup| pickup.update(self.pos, dt));
     }
 }
 
@@ -331,14 +344,7 @@ pub struct Settings {
     pub max_boost_velocity: Vec2<f64>,
     pub static_velocity_boost: Vec2<f64>,
     pub static_velocity_boost_treshold: f64,
-    /// Distance from the edge at which the camera will pan.
-    pub pan_edge_offset: i32,
-    /// How many pixels per second the camera will pan.
-    pub pan_speed: f64,
-    /// Interval in seconds for when a unit spawns.
-    pub unit_spawn_interval: f64,
-    /// Interval in seconds for when an enemy unit spawns.
-    pub enemy_unit_spawn_interval: f64,
+    pub disk_spawn_rate: f64,
 }
 
 impl Asset for Settings {
