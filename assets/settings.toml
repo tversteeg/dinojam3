@@ -9,10 +9,8 @@ gravity = 98.1
 initial_camera = { x = 0, y = -60 }
 cannon_offset = { x = 0, y = 50 }
 player_offset = { x = 50, y = 0 }
-boost_meter_offset = { x = -25, y = -30 }
-boost_meter_height = 6
-speed_meter_offset = { x = -40, y = 0 }
-speed_meter_size = { w = 200, h = 15 }
+boost_meter_offset = { x = -40, y = -35 }
+speed_meter_offset = { x = -40, y = 155 }
 
 rot_factor = { x = 0.002, y = 0.02 }
 rot_y_clamp = 500.0

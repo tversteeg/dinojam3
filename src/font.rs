@@ -24,7 +24,7 @@ impl Font {
         let char_end = '~';
 
         let pos: Vec2<i32> = pos.as_();
-        let mut x = pos.x;
+        let mut x = pos.x - self.char_size.w as i32;
         let mut y = pos.y;
 
         // Draw each character from the string

@@ -121,20 +121,15 @@ impl GameState {
             Phase::LaunchSetSpeed => {
                 crate::font().render("Click to set the speed!", Vec2::new(10, 10).as_(), canvas);
                 let speed_offset: Vec2<usize> = (settings.speed_meter_offset + player_pos).as_();
-                for y in speed_offset.y..(speed_offset.y + settings.speed_meter_size.h) {
+
+                let speed_bar = crate::sprite("speed-bar");
+                speed_bar.render(canvas, &Camera::default(), speed_offset.as_() - (2.0, 2.0));
+                for y in speed_offset.y..(speed_offset.y + speed_bar.height() as usize - 4) {
                     let start = y * SIZE.w + speed_offset.x;
-                    let x = start + settings.speed_meter_size.w / 2;
-                    canvas[start..x].fill(Color::Salmon.as_u32());
-
-                    let x2 = x + settings.speed_meter_size.w / 2;
-
-                    canvas[x..x2].fill(Color::LightGreen.as_u32());
-
                     let x4 = start
                         + ((self.initial_speed - settings.min_speed)
                             / (settings.max_speed - settings.min_speed)
-                            * settings.speed_meter_size.w as f64)
-                            as usize;
+                            * (speed_bar.width() - 4) as f64) as usize;
                     canvas[x4..(x4 + 3)].fill(Color::White.as_u32());
                 }
             }
@@ -148,20 +143,16 @@ impl GameState {
                 if self.boost_delay <= 0.0 {
                     let boost_offset: Vec2<usize> =
                         (settings.boost_meter_offset + player_pos).as_();
-                    for y in boost_offset.y..(boost_offset.y + settings.boost_meter_height) {
+
+                    let boost_bar = crate::sprite("boost-bar");
+                    boost_bar.render(canvas, &Camera::default(), boost_offset.as_() - (2.0, 2.0));
+                    for y in boost_offset.y..(boost_offset.y + boost_bar.height() as usize - 4) {
                         let start = y * SIZE.w + boost_offset.x;
-                        let x = start + settings.boost_meter_penalty_area as usize;
-                        canvas[start..x].fill(Color::Salmon.as_u32());
-
-                        let x2 = x + settings.boost_meter_safe_area as usize;
-
-                        canvas[x..x2].fill(Color::LightGreen.as_u32());
-
-                        let x3 = x2 + settings.boost_meter_crit_area as usize;
-
-                        canvas[x2..x3].fill(Color::Green.as_u32());
-
-                        let x4 = start + self.boost as usize;
+                        let boost_frac = self.boost
+                            / (settings.boost_meter_safe_area
+                                + settings.boost_meter_penalty_area
+                                + settings.boost_meter_crit_area);
+                        let x4 = start + (boost_frac * (boost_bar.width() as f64 - 4.0)) as usize;
                         canvas[x4..(x4 + 3)].fill(Color::White.as_u32());
                     }
                 }
@@ -172,7 +163,7 @@ impl GameState {
                         self.pos.x.round(),
                         self.pos.y.abs().round()
                     ),
-                    Vec2::new(0, 0).as_(),
+                    Vec2::new(3, 3).as_(),
                     canvas,
                 );
             }
@@ -321,9 +312,7 @@ pub struct Settings {
     pub cannon_offset: Vec2<f64>,
     pub player_offset: Vec2<f64>,
     pub boost_meter_offset: Vec2<f64>,
-    pub boost_meter_height: usize,
     pub speed_meter_offset: Vec2<f64>,
-    pub speed_meter_size: Extent2<usize>,
     pub rot_factor: Vec2<f64>,
     pub rot_y_clamp: f64,
     pub air_friction: f64,
