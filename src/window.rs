@@ -1,6 +1,6 @@
 use game_loop::winit::{dpi::LogicalSize, window::WindowBuilder};
 use miette::{IntoDiagnostic, Result};
-use pixels::{PixelsBuilder, SurfaceTexture};
+use pixels::{wgpu::BlendState, PixelsBuilder, SurfaceTexture};
 use vek::{Extent2, Vec2};
 use winit::{
     event::{
@@ -49,12 +49,8 @@ where
     let pixels = {
         let surface_texture = SurfaceTexture::new(size.w as u32 * 2, size.h as u32 * 2, &window);
         PixelsBuilder::new(size.w as u32, size.h as u32, surface_texture)
-            .clear_color(pixels::wgpu::Color {
-                r: 0.796,
-                g: 0.859,
-                b: 0.988,
-                a: 1.0,
-            })
+            .clear_color(pixels::wgpu::Color::WHITE)
+            .blend_state(BlendState::REPLACE)
             .build_async()
             .await
     }

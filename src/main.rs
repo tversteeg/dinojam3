@@ -23,6 +23,8 @@ use sprite::{RotatableSprite, Sprite};
 use tokio::runtime::Runtime;
 use vek::Extent2;
 
+use crate::graphics::Color;
+
 /// Window size.
 pub const SIZE: Extent2<usize> = Extent2::new(320, 240);
 /// Updates per second of the update loop.
@@ -90,7 +92,7 @@ async fn run() -> Result<()> {
         |g, buffer, frame_time| {
             {
                 puffin::profile_scope!("Clear pixels");
-                buffer.fill(0);
+                buffer.fill(Color::SkyBlue.as_u32());
             }
 
             {
