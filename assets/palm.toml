@@ -1,2 +1,9 @@
 rotations = 1
-sprite_offset = "middle_top"
+sprite_offset = "middle_bottom"
+repeat_distance = 1
+parallax_x = { min = 0.3, max = 0.5 }
+parallax_y_factor = 0.2
+amount = 20
+sprite_path = "palm"
+lock_y = 0
+start_at = { x = 0.0, y = -60.0 }

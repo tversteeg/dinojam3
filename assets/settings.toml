@@ -12,11 +12,10 @@ air_friction = 0.999
 restitution = { x = 0.6, y = 0.5 }
 halting_velocity = { x = 200.0, y = 100.0 }
 
-initial_camera = { x = 0, y = -60 }
-cannon_offset = { x = 0, y = 50 }
-player_offset = { x = 50, y = 0 }
-boost_meter_offset = { x = -40, y = -35 }
-speed_meter_offset = { x = -40, y = 155 }
+cannon_offset = { x = 50, y = 150 }
+player_offset = { x = 50, y = 150 }
+boost_meter_offset = { x = 10, y = 110 }
+speed_meter_offset = { x = 20, y = 200 }
 
 tree_amount = 4
 rock_amount = 1

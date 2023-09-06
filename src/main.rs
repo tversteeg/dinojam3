@@ -5,7 +5,7 @@ mod game;
 mod graphics;
 mod input;
 mod math;
-mod pickup;
+mod object;
 mod random;
 mod sprite;
 mod timer;
@@ -18,6 +18,7 @@ use assets_manager::{AssetGuard, Compound};
 use font::Font;
 use game::{GameState, Settings};
 use miette::Result;
+use object::ObjectsSpawner;
 use sprite::{RotatableSprite, Sprite};
 #[cfg(not(target_arch = "wasm32"))]
 use tokio::runtime::Runtime;
@@ -56,6 +57,10 @@ pub fn settings() -> AssetGuard<'static, Settings> {
 
 /// Load a sprite.
 pub fn sprite(path: &str) -> AssetGuard<Sprite> {
+    crate::asset(path)
+}
+
+pub fn objects(path: &str) -> AssetGuard<ObjectsSpawner> {
     crate::asset(path)
 }
 

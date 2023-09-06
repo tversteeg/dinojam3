@@ -4,7 +4,7 @@ use assets_manager::{
     loader::{Loader, TomlLoader},
     AnyCache, Asset, BoxedError, Compound, SharedString,
 };
-use blit::{Blit, BlitBuffer, ToBlitBuffer};
+use blit::{Blit, BlitBuffer, BlitOptions, ToBlitBuffer};
 use image::ImageFormat;
 use serde::Deserialize;
 use vek::{Extent2, Vec2};
@@ -29,19 +29,18 @@ impl Sprite {
         Self { sprite, offset }
     }
 
-    /// Draw the sprite based on a camera offset.
-    pub fn render(&self, canvas: &mut [u32], camera: &Camera, offset: Vec2<f64>) {
+    /// Draw the sprite.
+    pub fn render(&self, canvas: &mut [u32], offset: Vec2<f64>) {
         puffin::profile_function!();
 
-        // Get the rendering options based on the camera offset
-        let mut blit_options = camera.to_blit_options();
-        let offset: Vec2<i32> = offset.as_() + self.offset.as_();
-
-        // Add the additional offset
-        blit_options.set_position((blit_options.x + offset.x, blit_options.y + offset.y));
-
-        self.sprite
-            .blit(canvas, SIZE.into_tuple().into(), &blit_options);
+        self.sprite.blit(
+            canvas,
+            SIZE.into_tuple().into(),
+            &BlitOptions::new_position(
+                offset.x as i32 + self.offset.x,
+                offset.y as i32 + self.offset.y,
+            ),
+        );
     }
 
     /// Whether a pixel on the image is transparent.
@@ -167,7 +166,7 @@ impl RotatableSprite {
     }
 
     /// Draw the nearest sprite based on the rotation with a camera offset.
-    pub fn render(&self, iso: Iso, canvas: &mut [u32], camera: &Camera) {
+    pub fn render(&self, iso: Iso, canvas: &mut [u32]) {
         let rotation = iso.rot.to_radians();
 
         // Calculate rotation based on nearest point
@@ -177,7 +176,7 @@ impl RotatableSprite {
 
         let sprite = &self.0[index];
 
-        sprite.render(canvas, camera, iso.pos);
+        sprite.render(canvas, iso.pos);
     }
 }
 

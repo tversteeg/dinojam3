@@ -25,3 +25,9 @@ impl From<RandomRangeF64> for f64 {
         value.value()
     }
 }
+
+impl Default for RandomRangeF64 {
+    fn default() -> Self {
+        Self::Static(0.0)
+    }
+}
