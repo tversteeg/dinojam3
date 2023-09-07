@@ -23,8 +23,8 @@ impl Font {
         let char_start = '!';
         let char_end = '~';
 
-        let pos: Vec2<i32> = pos.as_();
-        let mut x = pos.x - self.char_size.w as i32;
+        let pos: Vec2<i32> = pos.as_() - (self.char_size.w as i32, 0);
+        let mut x = pos.x;
         let mut y = pos.y;
 
         // Draw each character from the string

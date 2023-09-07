@@ -1,11 +1,11 @@
 mod assets;
-mod camera;
 mod font;
 mod game;
 mod graphics;
 mod input;
 mod math;
 mod object;
+mod particle;
 mod random;
 mod sprite;
 mod timer;
@@ -22,7 +22,7 @@ use object::ObjectsSpawner;
 use sprite::{RotatableSprite, Sprite};
 #[cfg(not(target_arch = "wasm32"))]
 use tokio::runtime::Runtime;
-use vek::Extent2;
+use vek::{Aabr, Extent2, Vec2};
 
 use crate::graphics::Color;
 
@@ -72,6 +72,26 @@ pub fn rotatable_sprite(path: &str) -> AssetGuard<RotatableSprite> {
 /// Load a font.
 pub fn font() -> AssetGuard<'static, Font> {
     crate::asset("torus-sans")
+}
+
+pub fn render_aabr(aabr: Aabr<f64>, canvas: &mut [u32], color: u32) {
+    if aabr.min.x < 0.0
+        || aabr.min.y < 0.0
+        || aabr.max.x >= SIZE.w as f64
+        || aabr.max.y >= SIZE.h as f64
+    {
+        return;
+    }
+
+    let aabr: Aabr<usize> = aabr.as_();
+    for y in aabr.min.y..aabr.max.y {
+        canvas[aabr.min.x + y * SIZE.w] = color;
+        canvas[aabr.max.x + y * SIZE.w] = color;
+    }
+    for x in aabr.min.x..aabr.max.x {
+        canvas[x + aabr.min.y * SIZE.w] = color;
+        canvas[x + aabr.max.y * SIZE.w] = color;
+    }
 }
 
 async fn run() -> Result<()> {

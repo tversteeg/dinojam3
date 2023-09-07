@@ -1,9 +1,10 @@
 use assets_manager::{loader::TomlLoader, Asset};
 use serde::Deserialize;
-use vek::{Extent2, Vec2};
+use vek::{Extent2, Rect, Vec2};
 
 use crate::{
-    camera::Camera, graphics::Color, input::Input, math::Iso, object::Object, timer::Timer, SIZE,
+    graphics::Color, input::Input, math::Iso, object::Object, particle::Particle, timer::Timer,
+    SIZE,
 };
 
 #[derive(Copy, Clone, PartialEq, Eq)]
@@ -15,7 +16,6 @@ enum Phase {
 
 /// Handles everything related to the game.
 pub struct GameState {
-    camera: Camera,
     phase: Phase,
     initial_angle: f64,
     sign: f64,
@@ -23,142 +23,43 @@ pub struct GameState {
     pos: Vec2<f64>,
     vel: Vec2<f64>,
     rot: f64,
+    money: usize,
     boost: f64,
     boost_sign: f64,
     boost_delay: f64,
     trees: Vec<Object>,
     clouds: Vec<Object>,
     disks: Vec<Object>,
+    rocks: Vec<Object>,
+    particles: Vec<Particle>,
 }
 
 impl GameState {
     /// Construct the game state with default values.
     pub fn new() -> Self {
         let settings = crate::settings();
-        let camera = Camera::default();
         let trees = crate::objects("palm").to_objects();
         let clouds = crate::objects("cloud").to_objects();
         let disks = crate::objects("disk").to_objects();
+        let rocks = crate::objects("rock").to_objects();
 
         Self {
             phase: Phase::LaunchSetAngle,
             initial_angle: settings.min_angle,
             initial_speed: settings.min_speed,
+            particles: Vec::new(),
             pos: Vec2::zero(),
             vel: Vec2::zero(),
             rot: 0.0,
+            money: 0,
             sign: 1.0,
             boost: 0.0,
             boost_sign: 1.0,
             boost_delay: 0.0,
-            camera,
             trees,
             clouds,
             disks,
-        }
-    }
-
-    /// Draw a frame.
-    pub fn render(&mut self, canvas: &mut [u32], _frame_time: f64) {
-        let settings = crate::settings();
-
-        self.clouds
-            .iter_mut()
-            .chain(self.trees.iter_mut())
-            .chain(self.disks.iter_mut())
-            .for_each(|obj| obj.render(canvas));
-
-        let ground_height =
-            (settings.player_offset.y - self.pos.y).clamp(0.0, SIZE.h as f64) as usize;
-        canvas[(ground_height * SIZE.w)..].fill(Color::LightGreen.as_u32());
-        let edge_ground_height =
-            (settings.player_offset.y - self.pos.y - 3.0).clamp(0.0, SIZE.h as f64) as usize;
-        canvas[(edge_ground_height * SIZE.w)..(ground_height * SIZE.w)].fill(Color::Green.as_u32());
-        /*
-
-        let rock = crate::sprite("rock");
-        rock.render(
-            canvas,
-            &Camera::default(),
-            Vec2::new(
-                (-self.camera.x % (SIZE.w as f64 * 2.3)) + SIZE.w as f64,
-                -self.camera.y + player_pos.y - rock.height() as f64 / 2.0,
-            ),
-        );
-
-        let cloud = crate::sprite("cloud");
-        for i in 0..20 {
-            cloud.render(
-                canvas,
-                &Camera::default(),
-                Vec2::new(
-                    (-(self.camera.x * 0.5) % (SIZE.w as f64 * 2.3 + i as f64 * 130.0))
-                        + SIZE.w as f64,
-                    -(self.camera.y * 0.5) - i as f64 * 200.0 - 100.0,
-                ),
-            );
-        }
-        */
-
-        match self.phase {
-            Phase::LaunchSetAngle => {
-                crate::font().render("Click to set the angle!", Vec2::new(10, 10).as_(), canvas);
-            }
-            Phase::LaunchSetSpeed => {
-                crate::font().render("Click to set the speed!", Vec2::new(10, 10).as_(), canvas);
-                let speed_offset: Vec2<usize> = (settings.speed_meter_offset).as_();
-
-                let speed_bar = crate::sprite("speed-bar");
-                speed_bar.render(canvas, speed_offset.as_() - (2.0, 2.0));
-                for y in speed_offset.y..(speed_offset.y + speed_bar.height() as usize - 4) {
-                    let start = y * SIZE.w + speed_offset.x;
-                    let x4 = start
-                        + ((self.initial_speed - settings.min_speed)
-                            / (settings.max_speed - settings.min_speed)
-                            * (speed_bar.width() - 4) as f64) as usize;
-                    canvas[x4..(x4 + 3)].fill(Color::White.as_u32());
-                }
-            }
-            Phase::Fly => {
-                crate::rotatable_sprite("dino1")
-                    .render(Iso::new(settings.player_offset, self.rot), canvas);
-
-                if self.boost_delay <= 0.0 {
-                    let boost_offset: Vec2<usize> = (settings.boost_meter_offset).as_();
-
-                    let boost_bar = crate::sprite("boost-bar");
-                    boost_bar.render(canvas, boost_offset.as_() - (2.0, 2.0));
-                    for y in boost_offset.y..(boost_offset.y + boost_bar.height() as usize - 4) {
-                        let start = y * SIZE.w + boost_offset.x;
-                        let boost_frac = self.boost
-                            / (settings.boost_meter_safe_area
-                                + settings.boost_meter_penalty_area
-                                + settings.boost_meter_crit_area);
-                        let x4 = start + (boost_frac * (boost_bar.width() as f64 - 4.0)) as usize;
-                        canvas[x4..(x4 + 3)].fill(Color::White.as_u32());
-                    }
-                }
-
-                crate::font().render(
-                    &format!(
-                        "Distance: {:<7} Height: {}",
-                        self.pos.x.round(),
-                        self.pos.y.abs().round()
-                    ),
-                    Vec2::new(3, 3).as_(),
-                    canvas,
-                );
-            }
-        }
-
-        if self.pos.x < SIZE.w as f64 {
-            crate::rotatable_sprite("cannon").render(
-                Iso::new(
-                    -self.pos + settings.cannon_offset,
-                    self.initial_angle + std::f64::consts::FRAC_PI_2,
-                ),
-                canvas,
-            );
+            rocks,
         }
     }
 
@@ -170,7 +71,28 @@ impl GameState {
             .iter_mut()
             .chain(self.trees.iter_mut())
             .chain(self.disks.iter_mut())
-            .for_each(|obj| obj.update(self.pos, self.vel, dt));
+            .chain(self.rocks.iter_mut())
+            .for_each(|obj| obj.update(self.pos, self.vel, settings.player_offset, dt));
+
+        self.particles
+            .retain_mut(|particle| particle.update(self.vel, settings.particle_gravity, dt));
+
+        self.disks.iter_mut().for_each(|disk| {
+            if disk.collides_user(settings.player_collider) {
+                self.money += 1;
+
+                for _ in 0..settings.particle_amount {
+                    self.particles.push(Particle::new(
+                        disk.pos,
+                        self.vel * settings.particle_vel_multiplier,
+                        settings.particle_force,
+                        Color::Brown,
+                    ));
+                }
+
+                disk.reset(self.pos);
+            }
+        });
 
         match self.phase {
             Phase::LaunchSetAngle => {
@@ -286,6 +208,94 @@ impl GameState {
             }
         }
     }
+
+    /// Draw a frame.
+    pub fn render(&mut self, canvas: &mut [u32], _frame_time: f64) {
+        let settings = crate::settings();
+
+        self.clouds
+            .iter_mut()
+            .chain(self.trees.iter_mut())
+            .chain(self.disks.iter_mut())
+            .for_each(|obj| obj.render(canvas));
+
+        let ground_height =
+            (settings.player_offset.y - self.pos.y).clamp(0.0, SIZE.h as f64) as usize;
+        canvas[(ground_height * SIZE.w)..].fill(Color::LightGreen.as_u32());
+        let edge_ground_height =
+            (settings.player_offset.y - self.pos.y - 3.0).clamp(0.0, SIZE.h as f64) as usize;
+        canvas[(edge_ground_height * SIZE.w)..(ground_height * SIZE.w)].fill(Color::Green.as_u32());
+
+        self.rocks.iter_mut().for_each(|obj| obj.render(canvas));
+
+        //crate::render_aabr(settings.player_collider.into_aabr(), canvas, 0xFFFF0000);
+
+        match self.phase {
+            Phase::LaunchSetAngle => {
+                crate::font().render("Click to set the angle!", Vec2::new(10, 10).as_(), canvas);
+            }
+            Phase::LaunchSetSpeed => {
+                crate::font().render("Click to set the speed!", Vec2::new(10, 10).as_(), canvas);
+                let speed_offset: Vec2<usize> = (settings.speed_meter_offset).as_();
+
+                let speed_bar = crate::sprite("speed-bar");
+                speed_bar.render(canvas, speed_offset.as_() - (2.0, 2.0));
+                for y in speed_offset.y..(speed_offset.y + speed_bar.height() as usize - 4) {
+                    let start = y * SIZE.w + speed_offset.x;
+                    let x4 = start
+                        + ((self.initial_speed - settings.min_speed)
+                            / (settings.max_speed - settings.min_speed)
+                            * (speed_bar.width() - 4) as f64) as usize;
+                    canvas[x4..(x4 + 3)].fill(Color::White.as_u32());
+                }
+            }
+            Phase::Fly => {
+                crate::rotatable_sprite("dino1")
+                    .render(Iso::new(settings.player_offset, self.rot), canvas);
+
+                if self.boost_delay <= 0.0 {
+                    let boost_offset: Vec2<usize> = (settings.boost_meter_offset).as_();
+
+                    let boost_bar = crate::sprite("boost-bar");
+                    boost_bar.render(canvas, boost_offset.as_() - (2.0, 2.0));
+                    for y in boost_offset.y..(boost_offset.y + boost_bar.height() as usize - 4) {
+                        let start = y * SIZE.w + boost_offset.x;
+                        let boost_frac = self.boost
+                            / (settings.boost_meter_safe_area
+                                + settings.boost_meter_penalty_area
+                                + settings.boost_meter_crit_area);
+                        let x4 = start + (boost_frac * (boost_bar.width() as f64 - 4.0)) as usize;
+                        canvas[x4..(x4 + 3)].fill(Color::White.as_u32());
+                    }
+                }
+
+                crate::font().render(
+                    &format!(
+                        "Distance: {:<7} Height: {}\nEvolution: {}",
+                        self.pos.x.round(),
+                        self.pos.y.abs().round(),
+                        self.money,
+                    ),
+                    Vec2::new(3, 3).as_(),
+                    canvas,
+                );
+            }
+        }
+
+        if self.pos.x < SIZE.w as f64 {
+            crate::rotatable_sprite("cannon").render(
+                Iso::new(
+                    -self.pos + settings.cannon_offset,
+                    self.initial_angle + std::f64::consts::FRAC_PI_2,
+                ),
+                canvas,
+            );
+        }
+
+        self.particles
+            .iter()
+            .for_each(|particle| particle.render(canvas));
+    }
 }
 
 /// Game settings loaded from a file so it's easier to change them with hot-reloading.
@@ -320,7 +330,11 @@ pub struct Settings {
     pub max_boost_velocity: Vec2<f64>,
     pub static_velocity_boost: Vec2<f64>,
     pub static_velocity_boost_treshold: f64,
-    pub disk_spawn_rate: f64,
+    pub player_collider: Rect<f64, f64>,
+    pub particle_amount: usize,
+    pub particle_gravity: f64,
+    pub particle_force: f64,
+    pub particle_vel_multiplier: Vec2<f64>,
 }
 
 impl Asset for Settings {

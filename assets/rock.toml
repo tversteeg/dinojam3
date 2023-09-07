@@ -1,0 +1,7 @@
+rotations = 1
+sprite_offset = "middle_bottom"
+repeat_distance = 1
+amount = 3
+sprite_path = "rock"
+lock_y = 0
+start_at = { x = 0.0, y = -10.0 }

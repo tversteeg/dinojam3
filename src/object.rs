@@ -1,24 +1,23 @@
 use assets_manager::{loader::TomlLoader, Asset};
 use serde::Deserialize;
-use vek::Vec2;
+use vek::{Extent2, Rect, Vec2};
 
 use crate::{random::RandomRangeF64, SIZE};
 
 #[derive(Debug)]
 pub struct Object {
     repeat_distance: f64,
-    pos: Vec2<f64>,
+    pub pos: Vec2<f64>,
     parallax: Vec2<f64>,
     sprite_path: String,
     lock_x: Option<f64>,
     lock_y: Option<f64>,
     start_at: Vec2<f64>,
+    collider: Extent2<f64>,
 }
 
 impl Object {
     pub fn reset(&mut self, pos: Vec2<f64>) {
-        let settings = crate::settings();
-
         if pos.x == 0.0 {
             self.pos.x =
                 self.start_at.x + SIZE.w as f64 * 3.0 * fastrand::f64() * self.repeat_distance;
@@ -36,16 +35,15 @@ impl Object {
         }
     }
 
-    pub fn update(&mut self, pos: Vec2<f64>, vel: Vec2<f64>, dt: f64) {
+    pub fn update(&mut self, pos: Vec2<f64>, vel: Vec2<f64>, player_offset: Vec2<f64>, dt: f64) {
         if let Some(lock_x) = self.lock_x {
-            self.pos.x = lock_x - pos.x + crate::settings().player_offset.x + self.start_at.x;
+            self.pos.x = lock_x - pos.x + player_offset.x + self.start_at.x;
         } else {
             self.pos.x -= vel.x * dt * (1.0 - self.parallax.x);
         }
         if let Some(lock_y) = self.lock_y {
-            self.pos.y = lock_y - pos.y * (1.0 - self.parallax.y)
-                + crate::settings().player_offset.y
-                + self.start_at.y;
+            self.pos.y =
+                lock_y - pos.y * (1.0 - self.parallax.y) + player_offset.y + self.start_at.y;
         } else {
             self.pos.y -= vel.y * dt * (1.0 - self.parallax.y);
         }
@@ -55,10 +53,16 @@ impl Object {
         }
     }
 
+    pub fn collides_user(&self, player_rect: Rect<f64, f64>) -> bool {
+        Rect::new(self.pos.x, self.pos.y, self.collider.w, self.collider.h)
+            .collides_with_rect(player_rect)
+    }
+
     pub fn render(&self, canvas: &mut [u32]) {
-        if self.pos.x > SIZE.w as f64 * 1.5 {
-            return;
-        }
+        /*
+        let aabr = Rect::new(self.pos.x, self.pos.y, self.collider.w, self.collider.h).into_aabr();
+        crate::render_aabr(aabr, canvas, 0xFFFF0000);
+        */
 
         crate::sprite(&self.sprite_path).render(canvas, self.pos);
     }
@@ -79,6 +83,8 @@ pub struct ObjectsSpawner {
     lock_y: Option<f64>,
     #[serde(default)]
     start_at: Vec2<f64>,
+    #[serde(default)]
+    collider: Extent2<f64>,
 }
 
 impl ObjectsSpawner {
@@ -96,6 +102,7 @@ impl ObjectsSpawner {
                     lock_x: self.lock_x,
                     lock_y: self.lock_y,
                     start_at: self.start_at,
+                    collider: self.collider,
                 };
 
                 obj.reset(Vec2::zero());

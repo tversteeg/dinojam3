@@ -32,4 +32,9 @@ max_boost_velocity = { x = 500, y = 500 }
 static_velocity_boost = { x = 100, y = 100 }
 static_velocity_boost_treshold = 400
 
-disk_spawn_rate = 100
+player_collider = { x = 35, y = 135, w = 30, h = 30 }
+
+particle_amount = 50
+particle_gravity = 3
+particle_force = 300
+particle_vel_multiplier = { x = 0.5, y = 0.1 }

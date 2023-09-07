@@ -9,7 +9,7 @@ use image::ImageFormat;
 use serde::Deserialize;
 use vek::{Extent2, Vec2};
 
-use crate::{camera::Camera, math::Iso, SIZE};
+use crate::{math::Iso, SIZE};
 
 /// Sprite that can be drawn on the  canvas.
 #[derive(Debug)]
