@@ -38,3 +38,5 @@ particle_amount = 50
 particle_gravity = 3
 particle_force = 300
 particle_vel_multiplier = { x = 0.5, y = 0.1 }
+
+buy_time = 6

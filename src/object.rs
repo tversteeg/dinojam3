@@ -21,17 +21,14 @@ impl Object {
         if pos.x == 0.0 {
             self.pos.x =
                 self.start_at.x + SIZE.w as f64 * 3.0 * fastrand::f64() * self.repeat_distance;
-        } else if pos.x > self.start_at.x {
-            self.pos.x =
-                SIZE.w as f64 * 2.0 + SIZE.w as f64 * fastrand::f64() * self.repeat_distance;
+        } else {
+            self.pos.x = (SIZE.w as f64 * 2.0).max(self.start_at.x - pos.x)
+                + SIZE.w as f64 * fastrand::f64() * self.repeat_distance;
         }
 
         if self.lock_y.is_none() {
-            if pos.y.abs() > self.start_at.y {
-                self.pos.y = -(SIZE.h as f64 / 2.0) + fastrand::f64() * SIZE.h as f64;
-            } else {
-                self.pos.y = -self.start_at.y;
-            }
+            self.pos.y = -(SIZE.h as f64 / 2.0).max(self.start_at.y + pos.y)
+                + fastrand::f64() * SIZE.h as f64;
         }
     }
 

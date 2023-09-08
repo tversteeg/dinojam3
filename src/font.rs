@@ -10,7 +10,7 @@ pub struct Font {
     /// Image to render.
     sprite: BlitBuffer,
     /// Size of a single character.
-    char_size: Extent2<u8>,
+    pub char_size: Extent2<u8>,
 }
 
 impl Font {

@@ -71,7 +71,7 @@ pub fn rotatable_sprite(path: &str) -> AssetGuard<RotatableSprite> {
 
 /// Load a font.
 pub fn font() -> AssetGuard<'static, Font> {
-    crate::asset("torus-sans")
+    crate::asset("Beachball")
 }
 
 pub fn render_aabr(aabr: Aabr<f64>, canvas: &mut [u32], color: u32) {

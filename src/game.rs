@@ -9,6 +9,7 @@ use crate::{
 
 #[derive(Copy, Clone, PartialEq, Eq)]
 enum Phase {
+    Buy,
     LaunchSetAngle,
     LaunchSetSpeed,
     Fly,
@@ -27,6 +28,7 @@ pub struct GameState {
     boost: f64,
     boost_sign: f64,
     boost_delay: f64,
+    buy_timeout: f64,
     trees: Vec<Object>,
     clouds: Vec<Object>,
     disks: Vec<Object>,
@@ -44,9 +46,10 @@ impl GameState {
         let rocks = crate::objects("rock").to_objects();
 
         Self {
-            phase: Phase::LaunchSetAngle,
+            phase: Phase::Buy,
             initial_angle: settings.min_angle,
             initial_speed: settings.min_speed,
+            buy_timeout: settings.buy_time,
             particles: Vec::new(),
             pos: Vec2::zero(),
             vel: Vec2::zero(),
@@ -95,6 +98,16 @@ impl GameState {
         });
 
         match self.phase {
+            Phase::Buy => {
+                self.buy_timeout -= dt;
+                if self.buy_timeout <= 0.0 {
+                    self.phase = Phase::LaunchSetAngle
+                }
+
+                self.pos = Vec2::zero();
+                self.vel = Vec2::zero();
+                self.rot = 0.0;
+            }
             Phase::LaunchSetAngle => {
                 if input.left_mouse.is_released() {
                     self.phase = Phase::LaunchSetSpeed;
@@ -191,7 +204,8 @@ impl GameState {
                     if self.vel.x.abs() < settings.halting_velocity.x
                         && self.vel.y.abs() < settings.halting_velocity.y
                     {
-                        self.phase = Phase::LaunchSetAngle;
+                        self.phase = Phase::Buy;
+                        self.buy_timeout = settings.buy_time;
 
                         self.initial_angle = settings.min_angle;
                         self.initial_speed = settings.min_speed;
@@ -231,6 +245,25 @@ impl GameState {
         //crate::render_aabr(settings.player_collider.into_aabr(), canvas, 0xFFFF0000);
 
         match self.phase {
+            Phase::Buy => {
+                crate::sprite("buy-screen").render(canvas, Vec2::zero());
+                let font = crate::font();
+                let item_str = "Item will be chosen in";
+                font.render(
+                    item_str,
+                    Vec2::new(
+                        SIZE.w / 2 - item_str.len() * font.char_size.w as usize / 2,
+                        2,
+                    )
+                    .as_(),
+                    canvas,
+                );
+                font.render(
+                    &format!("{}", self.buy_timeout.round()),
+                    Vec2::new(SIZE.w / 2 - font.char_size.w as usize / 2, 18).as_(),
+                    canvas,
+                );
+            }
             Phase::LaunchSetAngle => {
                 crate::font().render("Click to set the angle!", Vec2::new(10, 10).as_(), canvas);
             }
@@ -282,7 +315,7 @@ impl GameState {
             }
         }
 
-        if self.pos.x < SIZE.w as f64 {
+        if self.phase != Phase::Buy && self.pos.x < SIZE.w as f64 {
             crate::rotatable_sprite("cannon").render(
                 Iso::new(
                     -self.pos + settings.cannon_offset,
@@ -335,6 +368,7 @@ pub struct Settings {
     pub particle_gravity: f64,
     pub particle_force: f64,
     pub particle_vel_multiplier: Vec2<f64>,
+    pub buy_time: f64,
 }
 
 impl Asset for Settings {
