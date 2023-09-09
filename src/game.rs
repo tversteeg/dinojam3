@@ -3,7 +3,13 @@ use serde::Deserialize;
 use vek::{Extent2, Rect, Vec2};
 
 use crate::{
-    graphics::Color, input::Input, math::Iso, object::Object, particle::Particle, timer::Timer,
+    card::{Card, CARD_PATHS},
+    graphics::Color,
+    input::Input,
+    math::Iso,
+    object::Object,
+    particle::Particle,
+    timer::Timer,
     SIZE,
 };
 
@@ -29,11 +35,13 @@ pub struct GameState {
     boost_sign: f64,
     boost_delay: f64,
     buy_timeout: f64,
+    buy_item: f64,
     trees: Vec<Object>,
     clouds: Vec<Object>,
     disks: Vec<Object>,
     rocks: Vec<Object>,
     particles: Vec<Particle>,
+    card_options: [Card; 3],
 }
 
 impl GameState {
@@ -45,7 +53,7 @@ impl GameState {
         let disks = crate::objects("disk").to_objects();
         let rocks = crate::objects("rock").to_objects();
 
-        Self {
+        let mut state = Self {
             phase: Phase::Buy,
             initial_angle: settings.min_angle,
             initial_speed: settings.min_speed,
@@ -59,11 +67,17 @@ impl GameState {
             boost: 0.0,
             boost_sign: 1.0,
             boost_delay: 0.0,
+            buy_item: 0.0,
             trees,
             clouds,
             disks,
             rocks,
-        }
+            card_options: [Card::default(), Card::default(), Card::default()],
+        };
+
+        state.switch_to_buy();
+
+        state
     }
 
     /// Update a frame and handle user input.
@@ -107,6 +121,11 @@ impl GameState {
                 self.pos = Vec2::zero();
                 self.vel = Vec2::zero();
                 self.rot = 0.0;
+
+                self.buy_item += settings.buy_speed * dt;
+                if self.buy_item >= 3.0 {
+                    self.buy_item -= 3.0;
+                }
             }
             Phase::LaunchSetAngle => {
                 if input.left_mouse.is_released() {
@@ -204,16 +223,7 @@ impl GameState {
                     if self.vel.x.abs() < settings.halting_velocity.x
                         && self.vel.y.abs() < settings.halting_velocity.y
                     {
-                        self.phase = Phase::Buy;
-                        self.buy_timeout = settings.buy_time;
-
-                        self.initial_angle = settings.min_angle;
-                        self.initial_speed = settings.min_speed;
-
-                        self.clouds
-                            .iter_mut()
-                            .chain(self.trees.iter_mut())
-                            .for_each(|obj| obj.reset(Vec2::zero()));
+                        self.switch_to_buy();
                     }
                     self.pos.y = 0.0;
                     self.vel.x *= settings.restitution.x;
@@ -263,6 +273,14 @@ impl GameState {
                     Vec2::new(SIZE.w / 2 - font.char_size.w as usize / 2, 18).as_(),
                     canvas,
                 );
+
+                let buy_offset: Vec2<usize> = (settings.buy_meter_offset).as_();
+                for y in buy_offset.y..(buy_offset.y + settings.buy_meter_size.h as usize - 4) {
+                    let start = y * SIZE.w + buy_offset.x;
+                    let buy_frac = self.buy_item / 3.0;
+                    let x4 = start + (buy_frac * (settings.buy_meter_size.w - 4.0)) as usize;
+                    canvas[x4..(x4 + 3)].fill(Color::White.as_u32());
+                }
             }
             Phase::LaunchSetAngle => {
                 crate::font().render("Click to set the angle!", Vec2::new(10, 10).as_(), canvas);
@@ -329,6 +347,29 @@ impl GameState {
             .iter()
             .for_each(|particle| particle.render(canvas));
     }
+
+    fn switch_to_buy(&mut self) {
+        let settings = crate::settings();
+
+        self.phase = Phase::Buy;
+        self.buy_timeout = settings.buy_time;
+
+        self.initial_angle = settings.min_angle;
+        self.initial_speed = settings.min_speed;
+
+        self.clouds
+            .iter_mut()
+            .chain(self.trees.iter_mut())
+            .for_each(|obj| obj.reset(Vec2::zero()));
+
+        self.card_options.iter_mut().for_each(|card| {
+            *card = crate::asset::<Card>(&format!(
+                "card.{}",
+                fastrand::choice(CARD_PATHS.iter()).unwrap()
+            ))
+            .clone();
+        });
+    }
 }
 
 /// Game settings loaded from a file so it's easier to change them with hot-reloading.
@@ -345,6 +386,8 @@ pub struct Settings {
     pub player_offset: Vec2<f64>,
     pub boost_meter_offset: Vec2<f64>,
     pub speed_meter_offset: Vec2<f64>,
+    pub buy_meter_offset: Vec2<f64>,
+    pub buy_meter_size: Extent2<f64>,
     pub rot_factor: Vec2<f64>,
     pub rot_y_clamp: f64,
     pub air_friction: f64,
@@ -369,6 +412,7 @@ pub struct Settings {
     pub particle_force: f64,
     pub particle_vel_multiplier: Vec2<f64>,
     pub buy_time: f64,
+    pub buy_speed: f64,
 }
 
 impl Asset for Settings {

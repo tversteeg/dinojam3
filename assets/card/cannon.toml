@@ -1,0 +1,5 @@
+title = "Cannon"
+description = ["Launch speed"]
+target = "initial_speed"
+value = 1.1
+cost = 4

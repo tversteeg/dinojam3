@@ -16,6 +16,8 @@ cannon_offset = { x = 50, y = 150 }
 player_offset = { x = 50, y = 150 }
 boost_meter_offset = { x = 10, y = 110 }
 speed_meter_offset = { x = 20, y = 200 }
+buy_meter_offset = { x = 18, y = 180 }
+buy_meter_size = { w = 286, h = 20 }
 
 tree_amount = 4
 rock_amount = 1
@@ -40,3 +42,4 @@ particle_force = 300
 particle_vel_multiplier = { x = 0.5, y = 0.1 }
 
 buy_time = 6
+buy_speed = 2

@@ -1,4 +1,5 @@
 mod assets;
+mod card;
 mod font;
 mod game;
 mod graphics;
