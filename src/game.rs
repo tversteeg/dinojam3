@@ -24,24 +24,25 @@ enum Phase {
 /// Handles everything related to the game.
 pub struct GameState {
     phase: Phase,
-    initial_angle: f64,
-    sign: f64,
-    initial_speed: f64,
-    pos: Vec2<f64>,
-    vel: Vec2<f64>,
-    rot: f64,
-    money: usize,
-    boost: f64,
-    boost_sign: f64,
-    boost_delay: f64,
-    buy_timeout: f64,
-    buy_item: f64,
-    trees: Vec<Object>,
-    clouds: Vec<Object>,
-    disks: Vec<Object>,
-    rocks: Vec<Object>,
-    particles: Vec<Particle>,
-    card_options: [Card; 3],
+    pub initial_angle: f64,
+    pub sign: f64,
+    pub initial_speed: f64,
+    pub extra_initial_speed: f64,
+    pub pos: Vec2<f64>,
+    pub vel: Vec2<f64>,
+    pub rot: f64,
+    pub money: usize,
+    pub boost: f64,
+    pub boost_sign: f64,
+    pub boost_delay: f64,
+    pub buy_timeout: f64,
+    pub buy_item: f64,
+    pub trees: Vec<Object>,
+    pub clouds: Vec<Object>,
+    pub disks: Vec<Object>,
+    pub rocks: Vec<Object>,
+    pub particles: Vec<Particle>,
+    pub card_options: [Card; 3],
 }
 
 impl GameState {
@@ -57,6 +58,7 @@ impl GameState {
             phase: Phase::Buy,
             initial_angle: settings.min_angle,
             initial_speed: settings.min_speed,
+            extra_initial_speed: 0.0,
             buy_timeout: settings.buy_time,
             particles: Vec::new(),
             pos: Vec2::zero(),
@@ -104,6 +106,18 @@ impl GameState {
                         self.vel * settings.particle_vel_multiplier,
                         settings.particle_force,
                         Color::Brown,
+                        true,
+                        settings.particle_life,
+                    ));
+                }
+                for _ in 0..settings.topleft_particle_amount {
+                    self.particles.push(Particle::new(
+                        Vec2::new(33.0, 10.0),
+                        Vec2::zero(),
+                        settings.topleft_particle_force,
+                        Color::White,
+                        false,
+                        settings.topleft_particle_life,
                     ));
                 }
 
@@ -115,7 +129,13 @@ impl GameState {
             Phase::Buy => {
                 self.buy_timeout -= dt;
                 if self.buy_timeout <= 0.0 {
-                    self.phase = Phase::LaunchSetAngle
+                    self.phase = Phase::LaunchSetAngle;
+                } else if input.left_mouse.is_released() {
+                    self.phase = Phase::LaunchSetAngle;
+
+                    let index = self.buy_item.floor().clamp(0.0, 3.0) as usize;
+                    let card = self.card_options[index].clone();
+                    card.apply(self);
                 }
 
                 self.pos = Vec2::zero();
@@ -150,7 +170,7 @@ impl GameState {
                     self.sign = 1.0;
 
                     self.vel = Vec2::new(self.initial_angle.cos(), self.initial_angle.sin())
-                        * self.initial_speed;
+                        * (self.initial_speed + self.extra_initial_speed);
                     self.boost_delay = settings.boost_delay;
                 }
 
@@ -252,13 +272,17 @@ impl GameState {
 
         self.rocks.iter_mut().for_each(|obj| obj.render(canvas));
 
+        self.particles
+            .iter()
+            .for_each(|particle| particle.render(canvas));
+
         //crate::render_aabr(settings.player_collider.into_aabr(), canvas, 0xFFFF0000);
 
         match self.phase {
             Phase::Buy => {
                 crate::sprite("buy-screen").render(canvas, Vec2::zero());
                 let font = crate::font();
-                let item_str = "Item will be chosen in";
+                let item_str = "Skipped in:";
                 font.render(
                     item_str,
                     Vec2::new(
@@ -281,6 +305,16 @@ impl GameState {
                     let x4 = start + (buy_frac * (settings.buy_meter_size.w - 4.0)) as usize;
                     canvas[x4..(x4 + 3)].fill(Color::White.as_u32());
                 }
+
+                self.card_options[0].render(Vec2::new(19.0, 64.0), canvas);
+                self.card_options[1].render(Vec2::new(116.0, 64.0), canvas);
+                self.card_options[2].render(Vec2::new(212.0, 64.0), canvas);
+
+                let pos = Vec2::new(3, 3).as_();
+                crate::font().render(&format!("  {}", self.money,), pos, canvas);
+
+                let disk = crate::sprite("disk-icon");
+                disk.render(canvas, pos - (1.0, 1.0));
             }
             Phase::LaunchSetAngle => {
                 crate::font().render("Click to set the angle!", Vec2::new(10, 10).as_(), canvas);
@@ -320,16 +354,20 @@ impl GameState {
                     }
                 }
 
+                let pos = Vec2::new(3, 3).as_();
                 crate::font().render(
                     &format!(
-                        "Distance: {:<7} Height: {}\nEvolution: {}",
+                        "  {:<4} [ {:<7} ] {}",
+                        self.money,
                         self.pos.x.round(),
                         self.pos.y.abs().round(),
-                        self.money,
                     ),
-                    Vec2::new(3, 3).as_(),
+                    pos,
                     canvas,
                 );
+
+                let disk = crate::sprite("disk-icon");
+                disk.render(canvas, pos - (1.0, 1.0));
             }
         }
 
@@ -342,10 +380,6 @@ impl GameState {
                 canvas,
             );
         }
-
-        self.particles
-            .iter()
-            .for_each(|particle| particle.render(canvas));
     }
 
     fn switch_to_buy(&mut self) {
@@ -353,6 +387,7 @@ impl GameState {
 
         self.phase = Phase::Buy;
         self.buy_timeout = settings.buy_time;
+        self.buy_item = fastrand::f64() * 3.0;
 
         self.initial_angle = settings.min_angle;
         self.initial_speed = settings.min_speed;
@@ -411,6 +446,11 @@ pub struct Settings {
     pub particle_gravity: f64,
     pub particle_force: f64,
     pub particle_vel_multiplier: Vec2<f64>,
+    pub particle_life: f64,
+    pub topleft_particle_amount: usize,
+    pub topleft_particle_gravity: f64,
+    pub topleft_particle_force: f64,
+    pub topleft_particle_life: f64,
     pub buy_time: f64,
     pub buy_speed: f64,
 }
