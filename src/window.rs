@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use game_loop::winit::{dpi::LogicalSize, window::WindowBuilder};
 use miette::{IntoDiagnostic, Result};
 use pixels::{wgpu::BlendState, PixelsBuilder, SurfaceTexture};
@@ -64,7 +66,7 @@ where
 
     game_loop::game_loop(
         event_loop,
-        window,
+        Arc::new(window),
         (game_state, pixels, Input::default()),
         updates_per_second,
         0.1,

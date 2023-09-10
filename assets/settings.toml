@@ -41,11 +41,19 @@ particle_gravity = 3
 particle_force = 300
 particle_vel_multiplier = { x = 0.5, y = 0.1 }
 particle_life = 1
-
+crit_particle_amount = 5
+crit_particle_gravity = 2
+crit_particle_force = 300
+crit_particle_life = 2
 topleft_particle_amount = 5
 topleft_particle_gravity = 10
 topleft_particle_force = 200
 topleft_particle_life = 0.5
+bounce_particle_amount = 4
+bounce_particle_gravity = 3
+bounce_particle_force = 100
+bounce_particle_vel_multiplier = { x = 0.6, y = 1.5 }
+bounce_particle_life = 1
 
 buy_time = 6
 buy_speed = 2

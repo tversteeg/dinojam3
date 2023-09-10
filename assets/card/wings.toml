@@ -1,0 +1,6 @@
+title = "Wings"
+description = ["-gravity"]
+target = "gravity"
+value = -10.0
+cost = 20
+max_amount = 3

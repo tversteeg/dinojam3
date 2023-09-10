@@ -3,7 +3,7 @@ use serde::Deserialize;
 use vek::{Extent2, Rect, Vec2};
 
 use crate::{
-    card::{Card, CARD_PATHS},
+    card::{Card, CARDS, CARD_PATHS},
     graphics::Color,
     input::Input,
     math::Iso,
@@ -27,7 +27,6 @@ pub struct GameState {
     pub initial_angle: f64,
     pub sign: f64,
     pub initial_speed: f64,
-    pub extra_initial_speed: f64,
     pub pos: Vec2<f64>,
     pub vel: Vec2<f64>,
     pub rot: f64,
@@ -43,6 +42,9 @@ pub struct GameState {
     pub rocks: Vec<Object>,
     pub particles: Vec<Particle>,
     pub card_options: [Card; 3],
+    pub selected_cards: [usize; CARDS],
+    pub extra_initial_speed: f64,
+    pub extra_gravity: f64,
 }
 
 impl GameState {
@@ -75,6 +77,8 @@ impl GameState {
             disks,
             rocks,
             card_options: [Card::default(), Card::default(), Card::default()],
+            selected_cards: [0; CARDS],
+            extra_gravity: 0.0,
         };
 
         state.switch_to_buy();
@@ -183,7 +187,7 @@ impl GameState {
             }
             Phase::Fly => {
                 self.pos += self.vel * dt;
-                self.vel.y += settings.gravity * dt;
+                self.vel.y += (settings.gravity + self.extra_gravity) * dt;
                 self.vel *= settings.air_friction;
                 self.rot += (self.vel.x * settings.rot_factor.x
                     + self
@@ -215,6 +219,17 @@ impl GameState {
                     let boost = if self.boost
                         > settings.boost_meter_safe_area + settings.boost_meter_penalty_area
                     {
+                        for _ in 0..settings.crit_particle_amount {
+                            self.particles.push(Particle::new(
+                                settings.player_offset,
+                                Vec2::zero(),
+                                settings.crit_particle_force,
+                                Color::DarkGreen,
+                                false,
+                                settings.crit_particle_life,
+                            ));
+                        }
+
                         settings.boost_crit
                     } else if self.boost > settings.boost_meter_penalty_area {
                         settings.boost_safe
@@ -244,10 +259,21 @@ impl GameState {
                         && self.vel.y.abs() < settings.halting_velocity.y
                     {
                         self.switch_to_buy();
+                    } else {
+                        self.pos.y = 0.0;
+                        self.vel.x *= settings.restitution.x;
+                        self.vel.y = -self.vel.y.abs() * settings.restitution.y;
+                        for _ in 0..settings.bounce_particle_amount {
+                            self.particles.push(Particle::new(
+                                settings.player_offset,
+                                self.vel * settings.bounce_particle_vel_multiplier,
+                                settings.bounce_particle_force,
+                                Color::Green,
+                                true,
+                                settings.bounce_particle_life,
+                            ));
+                        }
                     }
-                    self.pos.y = 0.0;
-                    self.vel.x *= settings.restitution.x;
-                    self.vel.y = -self.vel.y.abs() * settings.restitution.y;
                 }
             }
         }
@@ -298,6 +324,10 @@ impl GameState {
                     canvas,
                 );
 
+                let index = self.buy_item.floor().clamp(0.0, 3.0) as usize;
+                crate::sprite("buy-screen-selected-card")
+                    .render(canvas, Vec2::new([20, 116, 212][index] as f64, 64.0));
+
                 let buy_offset: Vec2<usize> = (settings.buy_meter_offset).as_();
                 for y in buy_offset.y..(buy_offset.y + settings.buy_meter_size.h as usize - 4) {
                     let start = y * SIZE.w + buy_offset.x;
@@ -306,9 +336,9 @@ impl GameState {
                     canvas[x4..(x4 + 3)].fill(Color::White.as_u32());
                 }
 
-                self.card_options[0].render(Vec2::new(19.0, 64.0), canvas);
-                self.card_options[1].render(Vec2::new(116.0, 64.0), canvas);
-                self.card_options[2].render(Vec2::new(212.0, 64.0), canvas);
+                self.card_options[0].render(Vec2::new(20.0, 64.0), canvas, &self.selected_cards);
+                self.card_options[1].render(Vec2::new(116.0, 64.0), canvas, &self.selected_cards);
+                self.card_options[2].render(Vec2::new(212.0, 64.0), canvas, &self.selected_cards);
 
                 let pos = Vec2::new(3, 3).as_();
                 crate::font().render(&format!("  {}", self.money,), pos, canvas);
@@ -398,11 +428,7 @@ impl GameState {
             .for_each(|obj| obj.reset(Vec2::zero()));
 
         self.card_options.iter_mut().for_each(|card| {
-            *card = crate::asset::<Card>(&format!(
-                "card.{}",
-                fastrand::choice(CARD_PATHS.iter()).unwrap()
-            ))
-            .clone();
+            *card = Card::random(self.money);
         });
     }
 }
@@ -451,6 +477,15 @@ pub struct Settings {
     pub topleft_particle_gravity: f64,
     pub topleft_particle_force: f64,
     pub topleft_particle_life: f64,
+    pub crit_particle_amount: usize,
+    pub crit_particle_gravity: f64,
+    pub crit_particle_force: f64,
+    pub crit_particle_life: f64,
+    pub bounce_particle_amount: usize,
+    pub bounce_particle_gravity: f64,
+    pub bounce_particle_force: f64,
+    pub bounce_particle_vel_multiplier: Vec2<f64>,
+    pub bounce_particle_life: f64,
     pub buy_time: f64,
     pub buy_speed: f64,
 }

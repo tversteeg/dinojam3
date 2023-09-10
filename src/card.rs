@@ -4,7 +4,8 @@ use vek::{Extent2, Vec2};
 
 use crate::game::GameState;
 
-pub const CARD_PATHS: [&str; 2] = ["cannon", "noop"];
+pub const CARDS: usize = 3;
+pub const CARD_PATHS: [&str; CARDS] = ["cannon", "noop", "wings"];
 const CARD_SIZE: Extent2<f64> = Extent2::new(88.0, 110.0);
 
 #[derive(Default, Clone, Copy, Eq, PartialEq, Deserialize)]
@@ -13,6 +14,7 @@ pub enum CardTarget {
     #[default]
     Nothing,
     InitialSpeed,
+    Gravity,
 }
 
 #[derive(Default, Clone, Deserialize)]
@@ -24,10 +26,29 @@ pub struct Card {
     value: f64,
     #[serde(default)]
     cost: usize,
+    #[serde(default)]
+    max_amount: usize,
+    #[serde(skip)]
+    index: usize,
 }
 
 impl Card {
-    pub fn render(&self, offset: Vec2<f64>, canvas: &mut [u32]) {
+    pub fn random(money: usize) -> Self {
+        let cards = CARD_PATHS
+            .iter()
+            .enumerate()
+            .map(|(i, path)| {
+                crate::asset::<Card>(&format!("card.{path}"))
+                    .clone()
+                    .with_index(i)
+            })
+            .filter(|card| card.cost <= money)
+            .collect::<Vec<_>>();
+
+        fastrand::choice(cards).unwrap()
+    }
+
+    pub fn render(&self, offset: Vec2<f64>, canvas: &mut [u32], selected_cards: &[usize]) {
         let font = crate::font();
         font.render_centered(
             &self.title,
@@ -38,6 +59,14 @@ impl Card {
             font.render_centered(
                 d,
                 offset + (CARD_SIZE.w / 2.0, CARD_SIZE.h / 2.0 + i as f64 * 12.0),
+                canvas,
+            );
+        }
+
+        if self.max_amount > 0 {
+            font.render_centered(
+                &format!("{}/{}", selected_cards[self.index], self.max_amount),
+                offset + (CARD_SIZE.w / 2.0, 3.0),
                 canvas,
             );
         }
@@ -62,7 +91,15 @@ impl Card {
         match self.target {
             CardTarget::Nothing => (),
             CardTarget::InitialSpeed => game.extra_initial_speed += self.value,
+            CardTarget::Gravity => game.extra_gravity += self.value,
         }
+        game.selected_cards[self.index] += 1;
+    }
+
+    fn with_index(mut self, index: usize) -> Self {
+        self.index = index;
+
+        self
     }
 }
 
