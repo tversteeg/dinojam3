@@ -17,18 +17,28 @@ pub struct Object {
 }
 
 impl Object {
-    pub fn reset(&mut self, pos: Vec2<f64>) {
+    pub fn reset(&mut self, pos: Vec2<f64>, vel: Vec2<f64>) {
         if pos.x == 0.0 {
             self.pos.x =
                 self.start_at.x + SIZE.w as f64 * 3.0 * fastrand::f64() * self.repeat_distance;
+            self.pos.y =
+                self.start_at.y + SIZE.h as f64 * 3.0 * fastrand::f64() * self.repeat_distance;
+        } else if self.lock_y.is_none() {
+            let vel_norm = vel.normalized().rotated_z(fastrand::f64() - 0.5);
+
+            let biggest = SIZE.w.max(SIZE.h) as f64;
+            self.pos.x = (SIZE.w as f64 / 2.0 + vel_norm.x * biggest) * self.repeat_distance;
+            self.pos.y = (SIZE.h as f64 / 2.0 + vel_norm.y * biggest) * self.repeat_distance;
+
+            while self.pos.x < self.start_at.x - pos.x {
+                self.pos.x += SIZE.w as f64;
+            }
+            while self.pos.y > -self.start_at.y - pos.y {
+                self.pos.y -= SIZE.h as f64;
+            }
         } else {
             self.pos.x = (SIZE.w as f64 * 2.0).max(self.start_at.x - pos.x)
                 + SIZE.w as f64 * fastrand::f64() * self.repeat_distance;
-        }
-
-        if self.lock_y.is_none() {
-            self.pos.y = -(SIZE.h as f64 / 2.0).max(self.start_at.y + pos.y)
-                + fastrand::f64() * SIZE.h as f64;
         }
     }
 
@@ -46,7 +56,7 @@ impl Object {
         }
 
         if self.lock_x.is_none() && self.pos.x < -(SIZE.w as f64) {
-            self.reset(pos);
+            self.reset(pos, vel);
         }
     }
 
@@ -102,7 +112,7 @@ impl ObjectsSpawner {
                     collider: self.collider,
                 };
 
-                obj.reset(Vec2::zero());
+                obj.reset(Vec2::zero(), Vec2::zero());
 
                 obj
             })

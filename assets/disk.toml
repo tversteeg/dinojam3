@@ -1,7 +1,7 @@
 rotations = 1
 sprite_offset = "middle_top"
 repeat_distance = 1
-amount = 12
+amount = 6
 sprite_path = "disk"
-start_at = { x = 300.0, y = 300.0 }
+start_at = { x = 300.0, y = 50.0 }
 collider = { w = 26, h = 26 }

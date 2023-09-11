@@ -2,5 +2,5 @@ title = "Cannon"
 description = ["+launch", "speed"]
 target = "initial_speed"
 value = 300.0
-cost = 10
+cost = 5
 max_amount = 3

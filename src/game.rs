@@ -125,7 +125,7 @@ impl GameState {
                     ));
                 }
 
-                disk.reset(self.pos);
+                disk.reset(self.pos, self.vel);
             }
         });
 
@@ -425,7 +425,7 @@ impl GameState {
         self.clouds
             .iter_mut()
             .chain(self.trees.iter_mut())
-            .for_each(|obj| obj.reset(Vec2::zero()));
+            .for_each(|obj| obj.reset(Vec2::zero(), Vec2::zero()));
 
         self.card_options.iter_mut().for_each(|card| {
             *card = Card::random(self.money);
