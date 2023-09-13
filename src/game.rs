@@ -19,6 +19,7 @@ enum Phase {
     LaunchSetAngle,
     LaunchSetSpeed,
     Fly,
+    Dead,
 }
 
 /// Handles everything related to the game.
@@ -45,6 +46,8 @@ pub struct GameState {
     pub selected_cards: [usize; CARDS],
     pub extra_initial_speed: f64,
     pub extra_gravity: f64,
+    pub dead_timeout: f64,
+    pub max_distance: f64,
 }
 
 impl GameState {
@@ -79,6 +82,8 @@ impl GameState {
             card_options: [Card::default(), Card::default(), Card::default()],
             selected_cards: [0; CARDS],
             extra_gravity: 0.0,
+            dead_timeout: 0.0,
+            max_distance: 0.0,
         };
 
         state.switch_to_buy();
@@ -90,44 +95,46 @@ impl GameState {
     pub fn update(&mut self, input: &Input, dt: f64) {
         let settings = crate::settings();
 
-        self.clouds
-            .iter_mut()
-            .chain(self.trees.iter_mut())
-            .chain(self.disks.iter_mut())
-            .chain(self.rocks.iter_mut())
-            .for_each(|obj| obj.update(self.pos, self.vel, settings.player_offset, dt));
+        if self.phase != Phase::Dead {
+            self.clouds
+                .iter_mut()
+                .chain(self.trees.iter_mut())
+                .chain(self.disks.iter_mut())
+                .chain(self.rocks.iter_mut())
+                .for_each(|obj| obj.update(self.pos, self.vel, settings.player_offset, dt));
 
-        self.particles
-            .retain_mut(|particle| particle.update(self.vel, settings.particle_gravity, dt));
+            self.particles
+                .retain_mut(|particle| particle.update(self.vel, settings.particle_gravity, dt));
 
-        self.disks.iter_mut().for_each(|disk| {
-            if disk.collides_user(settings.player_collider) {
-                self.money += 1;
+            self.disks.iter_mut().for_each(|disk| {
+                if disk.collides_user(settings.player_collider) {
+                    self.money += 1;
 
-                for _ in 0..settings.particle_amount {
-                    self.particles.push(Particle::new(
-                        disk.pos,
-                        self.vel * settings.particle_vel_multiplier,
-                        settings.particle_force,
-                        Color::Brown,
-                        true,
-                        settings.particle_life,
-                    ));
+                    for _ in 0..settings.particle_amount {
+                        self.particles.push(Particle::new(
+                            disk.pos,
+                            self.vel * settings.particle_vel_multiplier,
+                            settings.particle_force,
+                            Color::Brown,
+                            true,
+                            settings.particle_life,
+                        ));
+                    }
+                    for _ in 0..settings.topleft_particle_amount {
+                        self.particles.push(Particle::new(
+                            Vec2::new(33.0, 10.0),
+                            Vec2::zero(),
+                            settings.topleft_particle_force,
+                            Color::White,
+                            false,
+                            settings.topleft_particle_life,
+                        ));
+                    }
+
+                    disk.reset(self.pos, self.vel);
                 }
-                for _ in 0..settings.topleft_particle_amount {
-                    self.particles.push(Particle::new(
-                        Vec2::new(33.0, 10.0),
-                        Vec2::zero(),
-                        settings.topleft_particle_force,
-                        Color::White,
-                        false,
-                        settings.topleft_particle_life,
-                    ));
-                }
-
-                disk.reset(self.pos, self.vel);
-            }
-        });
+            });
+        }
 
         match self.phase {
             Phase::Buy => {
@@ -258,7 +265,9 @@ impl GameState {
                     if self.vel.x.abs() < settings.halting_velocity.x
                         && self.vel.y.abs() < settings.halting_velocity.y
                     {
-                        self.switch_to_buy();
+                        self.phase = Phase::Dead;
+                        self.dead_timeout = settings.dead_wait_time;
+                        self.max_distance = self.max_distance.max(self.pos.x);
                     } else {
                         self.pos.y = 0.0;
                         self.vel.x *= settings.restitution.x;
@@ -274,6 +283,12 @@ impl GameState {
                             ));
                         }
                     }
+                }
+            }
+            Phase::Dead => {
+                self.dead_timeout -= dt;
+                if self.dead_timeout <= 0.0 {
+                    self.switch_to_buy();
                 }
             }
         }
@@ -364,25 +379,9 @@ impl GameState {
                     canvas[x4..(x4 + 3)].fill(Color::White.as_u32());
                 }
             }
-            Phase::Fly => {
+            Phase::Dead | Phase::Fly => {
                 crate::rotatable_sprite("dino1")
                     .render(Iso::new(settings.player_offset, self.rot), canvas);
-
-                if self.boost_delay <= 0.0 {
-                    let boost_offset: Vec2<usize> = (settings.boost_meter_offset).as_();
-
-                    let boost_bar = crate::sprite("boost-bar");
-                    boost_bar.render(canvas, boost_offset.as_() - (2.0, 2.0));
-                    for y in boost_offset.y..(boost_offset.y + boost_bar.height() as usize - 4) {
-                        let start = y * SIZE.w + boost_offset.x;
-                        let boost_frac = self.boost
-                            / (settings.boost_meter_safe_area
-                                + settings.boost_meter_penalty_area
-                                + settings.boost_meter_crit_area);
-                        let x4 = start + (boost_frac * (boost_bar.width() as f64 - 4.0)) as usize;
-                        canvas[x4..(x4 + 3)].fill(Color::White.as_u32());
-                    }
-                }
 
                 let pos = Vec2::new(3, 3).as_();
                 crate::font().render(
@@ -399,6 +398,35 @@ impl GameState {
                 let disk = crate::sprite("disk-icon");
                 disk.render(canvas, pos - (1.0, 1.0));
             }
+        }
+
+        if self.phase == Phase::Fly && self.boost_delay <= 0.0 {
+            let boost_offset: Vec2<usize> = (settings.boost_meter_offset).as_();
+
+            let boost_bar = crate::sprite("boost-bar");
+            boost_bar.render(canvas, boost_offset.as_() - (2.0, 2.0));
+            for y in boost_offset.y..(boost_offset.y + boost_bar.height() as usize - 4) {
+                let start = y * SIZE.w + boost_offset.x;
+                let boost_frac = self.boost
+                    / (settings.boost_meter_safe_area
+                        + settings.boost_meter_penalty_area
+                        + settings.boost_meter_crit_area);
+                let x4 = start + (boost_frac * (boost_bar.width() as f64 - 4.0)) as usize;
+                canvas[x4..(x4 + 3)].fill(Color::White.as_u32());
+            }
+        }
+
+        if self.phase == Phase::Dead {
+            crate::font().render_centered(
+                &format!("Distance: {}", self.pos.x.round()),
+                Vec2::new(SIZE.w as f64 / 2.0, SIZE.h as f64 / 2.0 - 50.0),
+                canvas,
+            );
+            crate::font().render_centered(
+                &format!("Max Distance: {}", self.max_distance.round()),
+                Vec2::new(SIZE.w as f64 / 2.0, SIZE.h as f64 / 2.0 - 30.0),
+                canvas,
+            );
         }
 
         if self.phase != Phase::Buy && self.pos.x < SIZE.w as f64 {
@@ -428,7 +456,7 @@ impl GameState {
             .for_each(|obj| obj.reset(Vec2::zero(), Vec2::zero()));
 
         self.card_options.iter_mut().for_each(|card| {
-            *card = Card::random(self.money);
+            *card = Card::random(self.money, &self.selected_cards);
         });
     }
 }
@@ -488,6 +516,7 @@ pub struct Settings {
     pub bounce_particle_life: f64,
     pub buy_time: f64,
     pub buy_speed: f64,
+    pub dead_wait_time: f64,
 }
 
 impl Asset for Settings {

@@ -33,7 +33,7 @@ pub struct Card {
 }
 
 impl Card {
-    pub fn random(money: usize) -> Self {
+    pub fn random(money: usize, selected_cards: &[usize]) -> Self {
         let cards = CARD_PATHS
             .iter()
             .enumerate()
@@ -42,7 +42,10 @@ impl Card {
                     .clone()
                     .with_index(i)
             })
-            .filter(|card| card.cost <= money)
+            .filter(|card| {
+                card.cost <= money
+                    && (card.max_amount == 0 || selected_cards[card.index] < card.max_amount)
+            })
             .collect::<Vec<_>>();
 
         fastrand::choice(cards).unwrap()

@@ -57,3 +57,5 @@ bounce_particle_life = 1
 
 buy_time = 6
 buy_speed = 2
+
+dead_wait_time = 3
