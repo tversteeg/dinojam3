@@ -1,3 +1,5 @@
+use std::f64::consts::PI;
+
 use assets_manager::{loader::TomlLoader, Asset};
 use serde::Deserialize;
 use vek::{Extent2, Rect, Vec2};
@@ -48,6 +50,9 @@ pub struct GameState {
     pub extra_gravity: f64,
     pub dead_timeout: f64,
     pub max_distance: f64,
+    pub screen_shake_pos: Vec2<f64>,
+    pub screen_shake_force: f64,
+    pub screen_shake_time: f64,
 }
 
 impl GameState {
@@ -84,6 +89,9 @@ impl GameState {
             extra_gravity: 0.0,
             dead_timeout: 0.0,
             max_distance: 0.0,
+            screen_shake_pos: Vec2::new(0.0, 0.0),
+            screen_shake_force: 0.0,
+            screen_shake_time: 0.0,
         };
 
         state.switch_to_buy();
@@ -94,6 +102,15 @@ impl GameState {
     /// Update a frame and handle user input.
     pub fn update(&mut self, input: &Input, dt: f64) {
         let settings = crate::settings();
+
+        if self.screen_shake_time > 0.0 {
+            self.screen_shake_pos.x += (fastrand::f64() - 0.5) * self.screen_shake_force * dt;
+            self.screen_shake_pos.y += (fastrand::f64() - 0.5) * self.screen_shake_force * dt;
+            self.screen_shake_pos *= self.screen_shake_time;
+            self.screen_shake_time -= dt;
+        } else {
+            self.screen_shake_pos = Vec2::zero();
+        }
 
         if self.phase != Phase::Dead {
             self.clouds
@@ -183,6 +200,9 @@ impl GameState {
                     self.vel = Vec2::new(self.initial_angle.cos(), self.initial_angle.sin())
                         * (self.initial_speed + self.extra_initial_speed);
                     self.boost_delay = settings.boost_delay;
+
+                    self.screen_shake_time = settings.screen_shake_launch.duration;
+                    self.screen_shake_force = settings.screen_shake_launch.force;
                 }
 
                 self.initial_speed += settings.speed_delta * self.sign * dt;
@@ -269,6 +289,9 @@ impl GameState {
                         self.dead_timeout = settings.dead_wait_time;
                         self.max_distance = self.max_distance.max(self.pos.x);
                     } else {
+                        self.screen_shake_time = settings.screen_shake_bounce.duration;
+                        self.screen_shake_force = settings.screen_shake_bounce.force * self.vel.y;
+
                         self.pos.y = 0.0;
                         self.vel.x *= settings.restitution.x;
                         self.vel.y = -self.vel.y.abs() * settings.restitution.y;
@@ -302,16 +325,19 @@ impl GameState {
             .iter_mut()
             .chain(self.trees.iter_mut())
             .chain(self.disks.iter_mut())
-            .for_each(|obj| obj.render(canvas));
+            .for_each(|obj| obj.render(canvas, self.screen_shake_pos));
 
-        let ground_height =
-            (settings.player_offset.y - self.pos.y).clamp(0.0, SIZE.h as f64) as usize;
+        let ground_height = (settings.player_offset.y - self.pos.y + self.screen_shake_pos.y)
+            .clamp(0.0, SIZE.h as f64) as usize;
         canvas[(ground_height * SIZE.w)..].fill(Color::LightGreen.as_u32());
-        let edge_ground_height =
-            (settings.player_offset.y - self.pos.y - 3.0).clamp(0.0, SIZE.h as f64) as usize;
+        let edge_ground_height = (settings.player_offset.y - self.pos.y - 3.0
+            + self.screen_shake_pos.y)
+            .clamp(0.0, SIZE.h as f64) as usize;
         canvas[(edge_ground_height * SIZE.w)..(ground_height * SIZE.w)].fill(Color::Green.as_u32());
 
-        self.rocks.iter_mut().for_each(|obj| obj.render(canvas));
+        self.rocks
+            .iter_mut()
+            .for_each(|obj| obj.render(canvas, self.screen_shake_pos));
 
         self.particles
             .iter()
@@ -380,8 +406,10 @@ impl GameState {
                 }
             }
             Phase::Dead | Phase::Fly => {
-                crate::rotatable_sprite("dino1")
-                    .render(Iso::new(settings.player_offset, self.rot), canvas);
+                crate::rotatable_sprite("dino1").render(
+                    Iso::new(settings.player_offset + self.screen_shake_pos, self.rot),
+                    canvas,
+                );
 
                 let pos = Vec2::new(3, 3).as_();
                 crate::font().render(
@@ -432,7 +460,7 @@ impl GameState {
         if self.phase != Phase::Buy && self.pos.x < SIZE.w as f64 {
             crate::rotatable_sprite("cannon").render(
                 Iso::new(
-                    -self.pos + settings.cannon_offset,
+                    -self.pos + settings.cannon_offset + self.screen_shake_pos,
                     self.initial_angle + std::f64::consts::FRAC_PI_2,
                 ),
                 canvas,
@@ -517,10 +545,18 @@ pub struct Settings {
     pub buy_time: f64,
     pub buy_speed: f64,
     pub dead_wait_time: f64,
+    pub screen_shake_launch: ScreenShake,
+    pub screen_shake_bounce: ScreenShake,
 }
 
 impl Asset for Settings {
     const EXTENSION: &'static str = "toml";
 
     type Loader = TomlLoader;
+}
+/// Game settings loaded from a file so it's easier to change them with hot-reloading.
+#[derive(Deserialize)]
+pub struct ScreenShake {
+    pub force: f64,
+    pub duration: f64,
 }

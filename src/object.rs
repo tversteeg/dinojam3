@@ -65,13 +65,13 @@ impl Object {
             .collides_with_rect(player_rect)
     }
 
-    pub fn render(&self, canvas: &mut [u32]) {
+    pub fn render(&self, canvas: &mut [u32], screenshake: Vec2<f64>) {
         /*
         let aabr = Rect::new(self.pos.x, self.pos.y, self.collider.w, self.collider.h).into_aabr();
         crate::render_aabr(aabr, canvas, 0xFFFF0000);
         */
 
-        crate::sprite(&self.sprite_path).render(canvas, self.pos);
+        crate::sprite(&self.sprite_path).render(canvas, self.pos + screenshake);
     }
 }
 

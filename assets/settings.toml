@@ -59,3 +59,6 @@ buy_time = 6
 buy_speed = 2
 
 dead_wait_time = 3
+
+screen_shake_launch = { duration = 1.0, force = 100 }
+screen_shake_bounce = { duration = 0.2, force = 10 }
