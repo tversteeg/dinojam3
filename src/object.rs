@@ -96,8 +96,6 @@ pub struct ObjectsSpawner {
 
 impl ObjectsSpawner {
     pub fn to_objects(&self) -> Vec<Object> {
-        let settings = crate::settings();
-
         let mut objects = (0..self.amount)
             .map(|_| {
                 let parallax_x = self.parallax_x.value();

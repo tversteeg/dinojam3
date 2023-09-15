@@ -36,11 +36,11 @@ static_velocity_boost_treshold = 400
 
 player_collider = { x = 35, y = 135, w = 30, h = 30 }
 
-particle_amount = 20
+particle_amount = 4
 particle_gravity = 3
 particle_force = 300
 particle_vel_multiplier = { x = 0.5, y = 0.1 }
-particle_life = 1
+particle_life = 0.5
 crit_particle_amount = 5
 crit_particle_gravity = 2
 crit_particle_force = 300
@@ -54,11 +54,22 @@ bounce_particle_gravity = 3
 bounce_particle_force = 100
 bounce_particle_vel_multiplier = { x = 0.6, y = 1.5 }
 bounce_particle_life = 1
+bomb_particle_amount = 20
+bomb_particle_gravity = 10
+bomb_particle_force = 300
+bomb_particle_vel_multiplier = { x = 0.9, y = 0.9 }
+bomb_particle_life = 2
 
 buy_time = 6
 buy_speed = 2
 
 dead_wait_time = 3
 
-screen_shake_launch = { duration = 1.0, force = 100 }
-screen_shake_bounce = { duration = 0.2, force = 10 }
+screen_shake_launch = { duration = 1.0, force = 200 }
+screen_shake_bounce = { duration = 0.2, force = 7 }
+screen_shake_bomb = { duration = 0.6, force = 3000 }
+screen_shake_disk = { duration = 0.3, force = 20 }
+
+attraction_distance = 150
+
+bomb_force = { x = 100, y = 300 }

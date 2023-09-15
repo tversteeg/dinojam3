@@ -43,6 +43,7 @@ pub struct GameState {
     pub clouds: Vec<Object>,
     pub disks: Vec<Object>,
     pub rocks: Vec<Object>,
+    pub bombs: Vec<Object>,
     pub particles: Vec<Particle>,
     pub card_options: [Card; 3],
     pub selected_cards: [usize; CARDS],
@@ -53,6 +54,7 @@ pub struct GameState {
     pub screen_shake_pos: Vec2<f64>,
     pub screen_shake_force: f64,
     pub screen_shake_time: f64,
+    pub attraction: f64,
 }
 
 impl GameState {
@@ -63,6 +65,7 @@ impl GameState {
         let clouds = crate::objects("cloud").to_objects();
         let disks = crate::objects("disk").to_objects();
         let rocks = crate::objects("rock").to_objects();
+        let bombs = crate::objects("bomb").to_objects();
 
         let mut state = Self {
             phase: Phase::Buy,
@@ -84,6 +87,7 @@ impl GameState {
             clouds,
             disks,
             rocks,
+            bombs,
             card_options: [Card::default(), Card::default(), Card::default()],
             selected_cards: [0; CARDS],
             extra_gravity: 0.0,
@@ -92,6 +96,7 @@ impl GameState {
             screen_shake_pos: Vec2::new(0.0, 0.0),
             screen_shake_force: 0.0,
             screen_shake_time: 0.0,
+            attraction: 0.0,
         };
 
         state.switch_to_buy();
@@ -118,12 +123,19 @@ impl GameState {
                 .chain(self.trees.iter_mut())
                 .chain(self.disks.iter_mut())
                 .chain(self.rocks.iter_mut())
+                .chain(self.bombs.iter_mut())
                 .for_each(|obj| obj.update(self.pos, self.vel, settings.player_offset, dt));
 
             self.particles
                 .retain_mut(|particle| particle.update(self.vel, settings.particle_gravity, dt));
 
             self.disks.iter_mut().for_each(|disk| {
+                let delta = settings.player_offset - disk.pos;
+                if delta.x <= 0.0 && delta.magnitude() < settings.attraction_distance {
+                    let dir = delta.normalized();
+                    disk.pos += dir * self.attraction * dt;
+                }
+
                 if disk.collides_user(settings.player_collider) {
                     self.money += 1;
 
@@ -148,7 +160,47 @@ impl GameState {
                         ));
                     }
 
+                    self.screen_shake_time = settings.screen_shake_disk.duration;
+                    self.screen_shake_force = settings.screen_shake_disk.force;
+
                     disk.reset(self.pos, self.vel);
+                }
+            });
+
+            self.bombs.iter_mut().for_each(|bomb| {
+                let delta = settings.player_offset - bomb.pos;
+                if delta.x <= 0.0 && delta.magnitude() < settings.attraction_distance {
+                    let dir = delta.normalized();
+                    bomb.pos += dir * self.attraction * dt;
+                }
+
+                if bomb.collides_user(settings.player_collider) {
+                    self.vel.x += settings.bomb_force.x;
+                    if self.vel.y.is_sign_positive() {
+                        self.vel.y = -settings.bomb_force.y;
+                    } else {
+                        self.vel.y -= settings.bomb_force.y;
+                    }
+
+                    for i in 0..settings.bomb_particle_amount {
+                        self.particles.push(Particle::new(
+                            bomb.pos,
+                            self.vel * settings.bomb_particle_vel_multiplier,
+                            settings.bomb_particle_force,
+                            if i < settings.bomb_particle_amount / 2 {
+                                Color::DarkGray
+                            } else {
+                                Color::Orange
+                            },
+                            true,
+                            settings.bomb_particle_life,
+                        ));
+                    }
+
+                    self.screen_shake_time = settings.screen_shake_bomb.duration;
+                    self.screen_shake_force = settings.screen_shake_bomb.force;
+
+                    bomb.reset(self.pos, self.vel);
                 }
             });
         }
@@ -325,6 +377,7 @@ impl GameState {
             .iter_mut()
             .chain(self.trees.iter_mut())
             .chain(self.disks.iter_mut())
+            .chain(self.bombs.iter_mut())
             .for_each(|obj| obj.render(canvas, self.screen_shake_pos));
 
         let ground_height = (settings.player_offset.y - self.pos.y + self.screen_shake_pos.y)
@@ -542,11 +595,20 @@ pub struct Settings {
     pub bounce_particle_force: f64,
     pub bounce_particle_vel_multiplier: Vec2<f64>,
     pub bounce_particle_life: f64,
+    pub bomb_particle_amount: usize,
+    pub bomb_particle_gravity: f64,
+    pub bomb_particle_force: f64,
+    pub bomb_particle_vel_multiplier: Vec2<f64>,
+    pub bomb_particle_life: f64,
     pub buy_time: f64,
     pub buy_speed: f64,
     pub dead_wait_time: f64,
     pub screen_shake_launch: ScreenShake,
     pub screen_shake_bounce: ScreenShake,
+    pub screen_shake_bomb: ScreenShake,
+    pub screen_shake_disk: ScreenShake,
+    pub attraction_distance: f64,
+    pub bomb_force: Vec2<f64>,
 }
 
 impl Asset for Settings {

@@ -4,4 +4,4 @@ repeat_distance = 1
 amount = 6
 sprite_path = "disk"
 start_at = { x = 300.0, y = 50.0 }
-collider = { w = 26, h = 26 }
+collider = { w = 25, h = 25 }

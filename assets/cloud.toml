@@ -1,8 +1,8 @@
 rotations = 1
 sprite_offset = "middle_top"
-repeat_distance = 1
+repeat_distance = 2
 parallax_x = { min = 0.5, max = 0.6 }
 parallax_y_factor = 1.0
-amount = 5
+amount = 3
 sprite_path = "cloud"
 start_at = { x = 0.0, y = 300.0 }

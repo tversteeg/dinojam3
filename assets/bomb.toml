@@ -1,0 +1,6 @@
+rotations = 1
+repeat_distance = 3
+amount = 1
+sprite_path = "bomb"
+start_at = { x = 1000.0, y = 20.0 }
+collider = { w = 32, h = 36 }

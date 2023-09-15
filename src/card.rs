@@ -4,8 +4,8 @@ use vek::{Extent2, Vec2};
 
 use crate::game::GameState;
 
-pub const CARDS: usize = 3;
-pub const CARD_PATHS: [&str; CARDS] = ["cannon", "noop", "wings"];
+pub const CARDS: usize = 4;
+pub const CARD_PATHS: [&str; CARDS] = ["cannon", "noop", "wings", "attract"];
 const CARD_SIZE: Extent2<f64> = Extent2::new(88.0, 110.0);
 
 #[derive(Default, Clone, Copy, Eq, PartialEq, Deserialize)]
@@ -15,6 +15,7 @@ pub enum CardTarget {
     Nothing,
     InitialSpeed,
     Gravity,
+    Attract,
 }
 
 #[derive(Default, Clone, Deserialize)]
@@ -95,6 +96,7 @@ impl Card {
             CardTarget::Nothing => (),
             CardTarget::InitialSpeed => game.extra_initial_speed += self.value,
             CardTarget::Gravity => game.extra_gravity += self.value,
+            CardTarget::Attract => game.attraction += self.value,
         }
         game.selected_cards[self.index] += 1;
     }

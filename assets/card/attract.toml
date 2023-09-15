@@ -1,0 +1,6 @@
+title = "Magnet"
+description = ["Attract", "items"]
+target = "attract"
+value = 100.0
+cost = 45
+max_amount = 2
