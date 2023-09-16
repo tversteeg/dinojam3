@@ -392,6 +392,16 @@ impl GameState {
             .iter_mut()
             .for_each(|obj| obj.render(canvas, self.screen_shake_pos));
 
+        if self.phase != Phase::Buy {
+            crate::sprite("flag").render(
+                canvas,
+                -self.pos
+                    + settings.player_offset
+                    + self.screen_shake_pos
+                    + (self.max_distance, -40.0),
+            );
+        }
+
         self.particles
             .iter()
             .for_each(|particle| particle.render(canvas));
