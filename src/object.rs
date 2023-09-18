@@ -71,7 +71,10 @@ impl Object {
         crate::render_aabr(aabr, canvas, 0xFFFF0000);
         */
 
-        crate::sprite(&self.sprite_path).render(canvas, self.pos + screenshake);
+        crate::sprite(&self.sprite_path).render(
+            canvas,
+            self.pos + screenshake * (Vec2::new(1.0, 1.0) - self.parallax),
+        );
     }
 }
 

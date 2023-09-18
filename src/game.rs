@@ -62,7 +62,10 @@ impl GameState {
     pub fn new() -> Self {
         let settings = crate::settings();
         let trees = crate::objects("palm").to_objects();
-        let clouds = crate::objects("cloud").to_objects();
+        let mut clouds = crate::objects("cloud").to_objects();
+        clouds.extend(crate::objects("cloud2").to_objects());
+        clouds.extend(crate::objects("cloud3").to_objects());
+        clouds.extend(crate::objects("cloud4").to_objects());
         let disks = crate::objects("disk").to_objects();
         let rocks = crate::objects("rock").to_objects();
         let bombs = crate::objects("bomb").to_objects();

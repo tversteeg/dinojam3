@@ -1,0 +1,8 @@
+rotations = 1
+sprite_offset = "middle_top"
+repeat_distance = 1
+parallax_x = { min = 0.88, max = 0.9 }
+parallax_y_factor = 1.0
+amount = 10
+sprite_path = "cloud3"
+start_at = { x = 0.0, y = 0.0 }
