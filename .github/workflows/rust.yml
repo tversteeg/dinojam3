@@ -181,7 +181,7 @@ jobs:
 
       # Build the WASM 
       - name: Build
-        run: cargo run --package run-wasm -- --bin dinojam3 --no-default-features --release --build-only
+        run: cargo run --package run-wasm -- --bin darwins_ascent --no-default-features --release --build-only
 
       # Deploy to GitHub pages
       - name: Deploy to GitHub Pages
@@ -189,5 +189,5 @@ jobs:
         env:
           REPO: self
           BRANCH: gh-pages
-          FOLDER: target/wasm-examples/dinojam3
+          FOLDER: target/wasm-examples/darwins_ascent
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

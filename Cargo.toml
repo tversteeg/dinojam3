@@ -13,6 +13,10 @@ repository = "https://github.com/tversteeg/dinojam3.git"
 keywords = ["game", "2d"]
 categories = ["games"]
 
+[features]
+default = ["embed-assets"]
+embed-assets = []
+
 [dependencies]
 winit = "0.28"
 log = "0.4"

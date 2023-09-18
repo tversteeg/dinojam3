@@ -3,22 +3,20 @@ use assets_manager::{AssetCache, AssetGuard, Compound};
 use crate::game::Settings;
 
 /// All external data.
-#[cfg(not(target_arch = "wasm32"))]
+#[cfg(not(feature = "embed-assets"))]
 pub struct Assets(AssetCache<assets_manager::source::FileSystem>);
-#[cfg(target_arch = "wasm32")]
+#[cfg(feature = "embed-assets")]
 pub struct Assets(AssetCache<assets_manager::source::Embedded<'static>>);
 
 impl Assets {
     /// Construct the asset loader.
-    ///
-    /// Embeds all assets for the WASM target.
     pub fn load() -> Self {
         // Load the assets from disk, allows hot-reloading
-        #[cfg(not(target_arch = "wasm32"))]
+        #[cfg(not(feature = "embed-assets"))]
         let source = assets_manager::source::FileSystem::new("assets").unwrap();
 
         // Embed all assets into the binary
-        #[cfg(target_arch = "wasm32")]
+        #[cfg(feature = "embed-assets")]
         let source =
             assets_manager::source::Embedded::from(assets_manager::source::embed!("assets"));
 
