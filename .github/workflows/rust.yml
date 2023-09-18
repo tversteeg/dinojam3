@@ -15,7 +15,7 @@ jobs:
     name: Formatter check
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
 
       - uses: actions-rs/toolchain@v1
         with:
@@ -40,7 +40,7 @@ jobs:
         os: [ubuntu-latest, macOS-latest, windows-latest]
     steps:
       # Checkout the branch being tested
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
 
       # Install rust stable
       - uses: dtolnay/rust-toolchain@master
@@ -82,7 +82,7 @@ jobs:
             name: darwins_ascent-x86_64-pc-windows-msvc.exe
     runs-on: ${{ matrix.os }}
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
 
       - name: Install Rust toolchain
         uses: actions-rs/toolchain@v1
@@ -131,7 +131,7 @@ jobs:
     needs: desktop
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
 
       # These can be squashed when https://github.com/actions/download-artifact/issues/6 is closed
       - name: Download releases from 'dekstop'
@@ -166,7 +166,7 @@ jobs:
     name: WASM build
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
 
       # Install rust stable
       - uses: dtolnay/rust-toolchain@master
