@@ -33,7 +33,7 @@ serde = "1"
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies]
 tokio = { version = "1", features = ["macros", "sync", "rt-multi-thread"] }
 fastrand = "2"
-puffin = "0.16"
+puffin = "0.17"
 puffin_http = "0.13"
 
 [target.'cfg(target_arch = "wasm32")'.dependencies]
@@ -43,7 +43,7 @@ wasm-bindgen-futures = "0.4"
 console_log = { version = "1", features = ["wasm-bindgen", "color"] }
 console_error_panic_hook = "0.1"
 fastrand = { version = "2", default-features = false, features = ["js"] }
-puffin = "0.16"
+puffin = "0.17"
 
 [workspace]
 members = ["run-wasm"]
